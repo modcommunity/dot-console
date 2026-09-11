@@ -47,6 +47,7 @@ var buffer: DotConsoleBuffer = null
 var _sources: Array[DotConsoleSource] = []
 var _open := false
 var _log_sink := Callable()
+var _paused_by_us := false
 
 
 func _init() -> void:
@@ -75,10 +76,24 @@ func setup() -> DotResult:
 	# not used: the console has to open when a screen stack has swallowed input, because
 	# "the interface is broken" is one of the things a console exists to investigate.
 	set_process_input(true)
+
+	# ALWAYS, and this is not a nicety: `runs_while_open = false` pauses the tree, and a
+	# paused node receives no input -- so the console would open, stop the game, and then
+	# be unable to read the key that closes it again or the line that would fix whatever
+	# it was opened to look at. A console that can pause the game must be exempt from the
+	# pause it causes. A panel drawing it needs the same, for the same reason.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	return DotResult.success(null)
 
 
 func _exit_tree() -> void:
+	# A console freed while open would otherwise leave the tree paused with nothing left
+	# to un-pause it -- the game stops and the thing that stopped it no longer exists.
+	if _paused_by_us:
+		var tree := get_tree()
+		if tree != null:
+			tree.paused = false
+		_paused_by_us = false
 	_detach_log_mirror()
 	if register_as_service:
 		DotRegistry.unregister_instance(SERVICE, self)
@@ -153,14 +168,76 @@ func _run_one(statement: String) -> DotResult:
 	)
 
 
+## The nearest few names to something that was not recognised.
+##
+## [b]By edit distance, not by prefix.[/b] A prefix match is the obvious implementation and
+## it misses the commonest typo there is: `mastervolume` for `master_volume` shares ten
+## characters and not one useful prefix, so a prefix-based suggester offers nothing exactly
+## when a player most needs it. Measured against this addon's own suite, which is where the
+## prefix version was caught.
+##
+## Bounded at three edits: past that the suggestions are noise, and "did you mean" followed
+## by something unrelated is worse than no suggestion at all.
 func _suggest(partial: String, limit: int = 3) -> PackedStringArray:
-	var out := PackedStringArray()
+	var scored: Array[Dictionary] = []
+	var needle := partial.to_lower()
 	for n in all_names():
-		if n.begins_with(partial.substr(0, maxi(1, partial.length() - 2))):
-			out.append(n)
-			if out.size() >= limit:
-				break
+		var d := _edit_distance(needle, n.to_lower(), 4)
+		# A name that simply starts with what was typed is always worth offering, however
+		# long it is: somebody who typed four characters of a twenty-character command has
+		# not made a mistake, they have stopped early.
+		if n.to_lower().begins_with(needle) and needle.length() >= 2:
+			d = 0
+		if d <= 3:
+			scored.append({"name": n, "d": d})
+
+	scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		# Ties broken on the name, because Array.sort_custom is not stable in Godot and a
+		# suggestion list that reshuffles between two identical typos reads as a bug.
+		if int(a["d"]) != int(b["d"]):
+			return int(a["d"]) < int(b["d"])
+		return str(a["name"]) < str(b["name"])
+	)
+
+	var out := PackedStringArray()
+	for entry in scored:
+		out.append(str(entry["name"]))
+		if out.size() >= limit:
+			break
 	return out
+
+
+## Levenshtein distance, abandoned once it is past [param cap].
+##
+## Two rows rather than a full matrix: the names here are short, but a console with four
+## hundred commands runs this four hundred times on every unknown line, and allocating a
+## matrix per name is the difference between imperceptible and a visible pause.
+static func _edit_distance(a: String, b: String, cap: int) -> int:
+	if absi(a.length() - b.length()) > cap:
+		return cap + 1
+	if a == b:
+		return 0
+
+	var previous := PackedInt32Array()
+	previous.resize(b.length() + 1)
+	for j in range(b.length() + 1):
+		previous[j] = j
+
+	for i in range(1, a.length() + 1):
+		var current := PackedInt32Array()
+		current.resize(b.length() + 1)
+		current[0] = i
+		var best := i
+		for j in range(1, b.length() + 1):
+			var cost := 0 if a[i - 1] == b[j - 1] else 1
+			current[j] = mini(
+				mini(current[j - 1] + 1, previous[j] + 1), previous[j - 1] + cost
+			)
+			best = mini(best, current[j])
+		if best > cap:
+			return cap + 1
+		previous = current
+	return previous[b.length()]
 
 
 # --- Completion -------------------------------------------------------------
@@ -229,6 +306,7 @@ func open() -> bool:
 	if not enabled or _open:
 		return false
 	_open = true
+	_apply_pause(true)
 	visibility_changed.emit(true)
 	return true
 
@@ -237,7 +315,30 @@ func close() -> void:
 	if not _open:
 		return
 	_open = false
+	_apply_pause(false)
 	visibility_changed.emit(false)
+
+
+## Pauses the tree while the console is open, when the config asks for it.
+##
+## [b]It restores only what it set.[/b] A game that was ALREADY paused -- a pause menu, a
+## loading screen, a match warmup -- is a game the console must not un-pause on the way
+## out, and "set it back to false" is the spelling that does exactly that. So the flag
+## records whether this console is the thing holding the pause, and closing with the flag
+## clear touches nothing.
+func _apply_pause(opening: bool) -> void:
+	if config == null or config.runs_while_open:
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	if opening:
+		if not tree.paused:
+			tree.paused = true
+			_paused_by_us = true
+	elif _paused_by_us:
+		tree.paused = false
+		_paused_by_us = false
 
 
 func toggle() -> void:

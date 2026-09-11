@@ -44,6 +44,8 @@ Three failures on the first run of the suite, and two of them are traps already 
 - **`_reset_cursor()` cleared the draft before it was returned.** Walking down off the end of the history gave back the empty string instead of what the player had been typing. The symptom is a console that eats your half-typed line the moment you touch an arrow key, which reads as a focus bug rather than an ordering one.
 - **A silently raised capacity.** `DotConsoleBuffer.new(8)` gave you sixteen lines, because the constructor floored the value at a comfortable minimum. A console whose capacity is not the number it was given is one whose check reads as a bug in the ring. Floored at 1 now.
 
+And one found later, by game-simple-lobby typing at a real console rather than by this suite: **the suggester matched on a prefix, and the commonest typo there is has no useful prefix.** `mastervolume` for `master_volume` shares ten characters and not one leading substring, so the "did you mean" was empty at exactly the moment a player needed it. It is a bounded edit distance now, with the prefix case kept as a special case worth zero — somebody who typed four characters of a twenty-character command has not made a mistake, they have stopped early.
+
 ## The pieces
 
 | | |
@@ -95,6 +97,6 @@ done
 timeout 120 godot --headless --path . res://examples/console_selftest.tscn
 ```
 
-8 sections, 77 checks. The last section builds a real `DotConsolePanel` and asserts it has a **size**, because `set_anchors_preset` does not set offsets and this family has shipped 0 × 0 `Control`s twice with every property reading correctly. That is the only half an assertion can reach; the rest wants a screenshot.
+8 sections, 80 checks. The last section builds a real `DotConsolePanel` and asserts it has a **size**, because `set_anchors_preset` does not set offsets and this family has shipped 0 × 0 `Control`s twice with every property reading correctly. That is the only half an assertion can reach; the rest wants a screenshot.
 
 `CHECKS` is a total as well as a section count. A script error inside a test aborts *that test*, not the run — dot-settings proved it, reporting "0 failed" and exiting 0 with eight checks missing — and the section counter cannot see it because the section had already announced itself.

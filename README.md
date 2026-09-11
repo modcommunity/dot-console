@@ -11,7 +11,7 @@ This asset, along with all the others, was built initially with **Claude Code** 
 
 ## It is a console, not a command system
 
-This is the one decision everything else follows from. dot-server already has a command system — commands, cvars, permissions, aliases, config execution, argument completion — and has had one for months. Building a second would be two copies of one thing, which is the bug this family guards hardest against; naming dot-server's would make it a hard dependency, which the family's rules forbid.
+This is the one decision everything else follows from. dot-server already has a command system, with commands, cvars, permissions, aliases, config execution and argument completion, and has had one for months. Building a second would be two copies of one thing, which is the bug this family guards hardest against; naming dot-server's would make it a hard dependency, which the family's rules forbid.
 
 So dot-console owns **the key, the line editing, the history, the scrollback and the drawing**, and asks *sources* to run the line. Three ship:
 
@@ -21,13 +21,13 @@ So dot-console owns **the key, the line editing, the history, the scrollback and
 | `DotConsoleBridge` | Wraps anything with `execute` and `complete` by duck typing, so a server's console becomes a source without this asset naming a single type in it. |
 | `DotConsoleRemote` | A `send_fn` that puts the line on a wire, for RCON or a chat command. |
 
-Sources are asked in order, and the first that claims a name handles it — so a local `quit` quits the client rather than the dedicated server, which is a mistake worth making impossible.
+Sources are asked in order, and the first that claims a name handles it, so a local `quit` quits the client rather than the dedicated server, which is a mistake worth making impossible.
 
 ## Three details that are not obvious
 
 **The key is bound by position, not by character.** The console key is the one under Escape, and it produces `` ` `` on a UK keyboard, `^` on a German one and `²` on a French one. Binding the character means the console cannot be opened at all across most of Europe, and the player's only clue is that nothing happens. `open_physical_key` is a physical keycode, and `open_action` comes first so a rebinder can move it.
 
-**The scrollback is a ring.** An unbounded console buffer is a memory leak with a plausible name: a dedicated server logging a line per tick fills it in an afternoon, and the console — the thing you would open to find out why the process is growing — is the cause.
+**The scrollback is a ring.** An unbounded console buffer is a memory leak with a plausible name: a dedicated server logging a line per tick fills it in an afternoon, and the console, which is the thing you would open to find out why the process is growing, is the cause.
 
 **A password typed into a console has been published.** It goes into the scrollback, into the history where the next Up arrow puts it back on screen, and into the screenshot somebody posts to ask why their server will not start. `DotConsoleLine.redact` keeps the command name and replaces the rest with a fixed number of asterisks, because the length of a password is information too.
 
@@ -68,7 +68,7 @@ Copy `addons/dot_console/` and [`dot-core`](https://github.com/modcommunity/dot-
 
 ## Dependencies
 
-[dot-core](https://github.com/modcommunity/dot-core). Nothing else — and in particular not dot-server, which it bridges to by duck typing, nor dot-ui.
+[dot-core](https://github.com/modcommunity/dot-core). Nothing else, and in particular not dot-server, which it bridges to by duck typing, nor dot-ui.
 
 ## License
 

@@ -14,7 +14,7 @@ extends Node
 const FakeSettings := preload("res://fixtures/fake_settings.gd")
 
 const SECTIONS := 8
-const CHECKS := 77
+const CHECKS := 89
 
 var _passed := 0
 var _failed := 0
@@ -372,9 +372,72 @@ func _test_controller() -> void:
 		"with a suggestion, because a typo is the commonest thing that happens in a console"
 	)
 
+
 	_check(c.all_names().size() == 2, "it knows what it can do")
 	_check(c.help_for("say") == "Say something", "and can say what each one is")
 	_check(c.describe_lines().size() > 2, "and it describes itself")
+
+	# The one a prefix-based suggester misses, and it is the commonest typo there is: a
+	# dropped underscore shares ten characters and not one useful prefix. Caught by
+	# game-simple-lobby's own suite, which typed `mastervolume` at a real console.
+	local.add_command(&"master_volume", "Volume", func(_a: PackedStringArray) -> Variant: return null)
+	var dropped := c.submit("mastervolume 1")
+	_check(not dropped.ok, "a dropped underscore is not a command")
+	_check(
+		dropped.error.detail.contains("master_volume"),
+		"and is suggested by edit distance, which a prefix match cannot do"
+	)
+	var nonsense := c.submit("qqqqqqqqqqqq")
+	_check(
+		not nonsense.ok and nonsense.error.detail.is_empty(),
+		"while something nothing is near gets no suggestion, rather than an unrelated one"
+	)
+
+	# `runs_while_open` was a documented setting nothing read: the console said it could
+	# stop the game and could not. Both positions are tested, because a setting that reads
+	# differently and behaves identically is this family's most disguised bug -- one that
+	# only checked the `false` side would pass with the pause hard-coded on.
+	# `print_lines` had no caller, and it is the one every `describe_lines()` in this family
+	# feeds: a command that answers in eight lines and a console that can only be given one
+	# is eight calls and eight signal emissions.
+	var appended := []
+	c.line_appended.connect(func(t: String, _lvl: int) -> void: appended.append(t))
+	c.print_lines(PackedStringArray(["alpha", "beta", "gamma"]), DotConsoleBuffer.Level.WARN)
+	_check(appended.size() == 3, "a block of lines is appended as three lines, not one")
+	_check(
+		c.buffer.to_text().contains("beta"),
+		"and reaches the scrollback rather than only the signal"
+	)
+	_check(
+		int(c.buffer.tail(1)[0]["level"]) == int(DotConsoleBuffer.Level.WARN),
+		"at the level it was given, because a warning printed as info is a warning nobody sees"
+	)
+	c.print_lines(PackedStringArray([]))
+	_check(appended.size() == 3, "and an empty block prints nothing at all")
+
+	_check(
+		c.process_mode == Node.PROCESS_MODE_ALWAYS,
+		"a console that can pause the game is exempt from the pause it causes"
+	)
+	var tree := get_tree()
+	c.config.runs_while_open = true
+	c.open()
+	_check(not tree.paused, "a console that runs while open leaves the game running")
+	c.close()
+
+	c.config.runs_while_open = false
+	c.open()
+	_check(tree.paused, "and one that does not, stops it")
+	c.close()
+	_check(not tree.paused, "and starts it again on the way out")
+
+	# The half an inverse would get wrong. A game already paused for its own reason -- a
+	# pause menu, a warmup, a loading screen -- must not be un-paused by a console closing.
+	tree.paused = true
+	c.open()
+	c.close()
+	_check(tree.paused, "a pause it did not take is a pause it does not release")
+	tree.paused = false
 
 	c.queue_free()
 

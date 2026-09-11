@@ -42,6 +42,12 @@ func _ready() -> void:
 	# it the other way -- animating the panel itself -- fights every anchor.
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# The controller's reason, on the drawing half: `runs_while_open = false` pauses the
+	# tree, and a paused Control neither animates nor handles the input that would type
+	# into it. A console that pauses the game has to be exempt from that pause, or opening
+	# it is indistinguishable from a freeze.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build()
 	if controller != null:
 		_bind(controller)
