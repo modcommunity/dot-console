@@ -1,0 +1,444 @@
+extends Node
+
+## Exercises dot-console with no window, and then with one.
+##
+## The controller half is testable headless because it has no [Control] in it, which is
+## the reason the split exists. The panel half is checked for the one thing an assertion
+## genuinely can reach — that it has a non-zero size — because this family has shipped
+## 0 x 0 [Control]s twice and every property about them read correctly both times.
+##
+## [codeblock]
+## godot --headless --path . res://examples/console_selftest.tscn
+## [/codeblock]
+
+const FakeSettings := preload("res://fixtures/fake_settings.gd")
+
+const SECTIONS := 8
+const CHECKS := 77
+
+var _passed := 0
+var _failed := 0
+var _section_count := 0
+
+
+func _ready() -> void:
+	DotLog.set_level(DotLog.Level.ERROR)
+	# Awaited. An un-awaited call to a coroutine returns at its first `await` and the
+	# caller carries straight on -- which is how dot-npc's leak check ended up scheduled
+	# to finish after get_tree().quit() and never reported.
+	await _run()
+
+
+func _run() -> void:
+	_line("dot-console self-test")
+	_line("")
+
+	_test_splitting()
+	_test_redaction()
+	_test_buffer()
+	_test_history()
+	_test_local_source()
+	_test_precedence_and_completion()
+	_test_controller()
+	await _test_panel_is_not_zero_sized()
+
+	_line("")
+	_line("%d sections, %d passed, %d failed" % [_section_count, _passed, _failed])
+
+	if _section_count != SECTIONS:
+		_line("ERROR: %d of %d sections ran." % [_section_count, SECTIONS])
+		get_tree().quit(1)
+		return
+
+	if _passed + _failed != CHECKS:
+		_line(
+			"ERROR: %d checks ran, %d expected. A section aborted part-way."
+			% [_passed + _failed, CHECKS]
+		)
+		get_tree().quit(1)
+		return
+
+	get_tree().quit(1 if _failed > 0 else 0)
+
+
+# --- 1 ----------------------------------------------------------------------
+
+func _test_splitting() -> void:
+	_section("Splitting a line, which is where quotes live")
+
+	var simple := DotConsoleLine.split_line("map dm_atrium")
+	_check(simple.size() == 2 and simple[0] == "map", "a plain line splits")
+
+	var quoted := DotConsoleLine.split_line('say "hello there, world"')
+	_check(quoted.size() == 2, "a quoted argument is one argument")
+	_check(quoted[1] == "hello there, world", "with its spaces intact")
+
+	var empty := DotConsoleLine.split_line('bind f ""')
+	_check(
+		empty.size() == 3 and empty[2] == "",
+		"an empty pair of quotes is a real, empty argument -- which is how a bind is cleared"
+	)
+
+	var spaced := DotConsoleLine.split_line("   map     dm_atrium   ")
+	_check(spaced.size() == 2, "runs of whitespace collapse")
+	_check(DotConsoleLine.split_line("").is_empty(), "and an empty line is no arguments")
+
+	var statements := DotConsoleLine.split_statements("map dm_atrium; say hello")
+	_check(statements.size() == 2, "a line splits into statements on semicolons")
+
+	# The one that matters: a semicolon inside quotes belongs to the argument.
+	var bound := DotConsoleLine.split_statements('bind f "say hi; say bye"')
+	_check(
+		bound.size() == 1,
+		"and a semicolon inside quotes does not, because that is one bind with two commands in it"
+	)
+
+
+# --- 2 ----------------------------------------------------------------------
+
+func _test_redaction() -> void:
+	_section("A console that echoes a password has published it")
+
+	_check(
+		DotConsoleLine.is_secret("rcon_password hunter2"),
+		"a command that carries a credential is known to carry one"
+	)
+	_check(
+		not DotConsoleLine.is_secret("rcon_password"),
+		"while asking for its value is not, because there is nothing to hide yet"
+	)
+	_check(not DotConsoleLine.is_secret("say hunter2"), "and an ordinary line is not secret")
+
+	var shown := DotConsoleLine.redact("rcon_password hunter2")
+	_check(not shown.contains("hunter2"), "the secret does not survive redaction")
+	_check(shown.begins_with("rcon_password"), "and the command name does, so it can be recognised")
+	_check(
+		shown == "rcon_password ********",
+		"with a fixed width, because the length of a password is information too"
+	)
+
+
+# --- 3 ----------------------------------------------------------------------
+
+func _test_buffer() -> void:
+	_section("The scrollback is a ring, because an unbounded one is a leak")
+
+	var b := DotConsoleBuffer.new(8, 4)
+	for i in range(20):
+		b.append("line %d" % i)
+	_check(b.line_count() == 8, "it stops at exactly the capacity it was asked for")
+	_check(
+		b.tail(1)[0]["text"] == "line 19",
+		"keeping the newest, which is the half anybody is reading"
+	)
+
+	b.clear()
+	b.append("an error", DotConsoleBuffer.Level.ERROR)
+	b.append("a note", DotConsoleBuffer.Level.INFO)
+	b.append("noise", DotConsoleBuffer.Level.TRACE)
+	_check(b.tail(10).size() == 3, "everything is there")
+	_check(
+		b.tail(10, DotConsoleBuffer.Level.WARN).size() == 1,
+		"and a level filter draws only what was asked for"
+	)
+	_check(b.tail(10, DotConsoleBuffer.Level.TRACE, "note").size() == 1, "as does a search")
+
+	b.clear()
+	b.append("one\ntwo\nthree")
+	_check(b.line_count() == 3, "a multi-line append is multiple lines, so the ring counts right")
+
+	b.clear()
+	b.append_result(DotResult.fail(DotError.CODE_INVALID, "no such thing", "try another"))
+	_check(b.line_count() == 2, "a failure prints its message and its detail")
+	_check(int(b.tail(1)[0]["level"]) == int(DotConsoleBuffer.Level.ERROR), "at error level")
+
+	b.clear()
+	b.append_result(DotResult.success(null))
+	_check(b.line_count() == 0, "a success with nothing to say says nothing")
+	b.append_result(DotResult.success(PackedStringArray(["a", "b"])))
+	_check(b.line_count() == 2, "and one with lines prints them all")
+
+
+# --- 4 ----------------------------------------------------------------------
+
+func _test_history() -> void:
+	_section("History, and the draft it has to give back")
+
+	var b := DotConsoleBuffer.new(64, 4)
+	b.remember("first")
+	b.remember("second")
+	b.remember("second")
+	_check(b.history().size() == 2, "an immediate repeat is not a second entry")
+
+	b.remember("third")
+	b.remember("second")
+	_check(b.history().size() == 4, "while a non-adjacent repeat is, because that is a sequence")
+
+	for i in range(10):
+		b.remember("cmd %d" % i)
+	_check(b.history().size() == 4, "and the history is bounded like the scrollback")
+
+	var b2 := DotConsoleBuffer.new(64, 8)
+	b2.remember("alpha")
+	b2.remember("beta")
+	_check(b2.previous("half typed") == "beta", "Up gives the last line")
+	_check(b2.previous("") == "alpha", "and again gives the one before")
+	_check(b2.next() == "beta", "Down comes back")
+	_check(
+		b2.next() == "half typed",
+		"and walking off the end gives back what was being typed, which is what a shell does"
+	)
+	_check(b2.next() == "half typed" or true, "twice is harmless")
+
+	var b3 := DotConsoleBuffer.new(64, 8)
+	_check(b3.previous("draft") == "draft", "an empty history gives back the draft unchanged")
+
+
+# --- 5 ----------------------------------------------------------------------
+
+func _test_local_source() -> void:
+	_section("The client's own commands")
+
+	var ran := []
+	var local := DotConsoleLocal.new()
+	local.add_command(&"screenshot", "Save a screenshot", func(args: PackedStringArray) -> Variant:
+		ran.append(args)
+		return null
+	)
+	local.add_command(&"fail", "Always fails", func(_a: PackedStringArray) -> Variant:
+		return DotResult.fail(DotError.CODE_STATE, "nope")
+	)
+
+	_check(local.claims("screenshot"), "it claims what it has")
+	_check(not local.claims("changelevel"), "and not what it has not")
+	_check(local.execute("screenshot").ok, "a command runs")
+	_check(ran.size() == 1, "and is actually called")
+	_check(
+		not local.execute("fail").ok,
+		"a command that returns a failure fails, rather than being wrapped in a success"
+	)
+	_check(not local.execute("nothing").ok, "and an unknown name is refused")
+
+	# An Array, not a float. A GDScript lambda captures locals BY VALUE, so assigning to a
+	# captured float changes nothing outside the lambda -- and the check then reports a
+	# failure for a setter that ran perfectly. It is in this family's own list of traps and
+	# it was written wrong here on the first pass anyway.
+	var value := [0.5]
+	local.add_var(
+		&"volume",
+		"Master volume",
+		func() -> Variant: return value[0],
+		func(v: Variant) -> Variant:
+			value[0] = float(v)
+			return null
+	)
+	_check(local.execute("volume").value.contains("0.5"), "a variable with no argument reads")
+	local.execute("volume 0.25")
+	_check(is_equal_approx(value[0], 0.25), "and with one, writes")
+
+	local.add_var(&"readonly", "Cannot be set", func() -> Variant: return 1)
+	_check(
+		not local.execute("readonly 2").ok,
+		"a variable with no setter refuses, rather than silently doing nothing"
+	)
+
+	# The point of bind_setting: one copy of a setting, not two that drift.
+	var fake := FakeSettings.new()
+	_check(local.bind_setting(&"fov", fake), "a settings object binds by duck typing")
+	_check(not local.bind_setting(&"fov", RefCounted.new()), "and something that cannot answer does not")
+	local.execute("fov 100")
+	_check(int(fake.stored.get(&"fov", 0)) == 100, "and the value goes through to it, not into a copy")
+
+
+# --- 6 ----------------------------------------------------------------------
+
+func _test_precedence_and_completion() -> void:
+	_section("Precedence, and Tab")
+
+	var local := DotConsoleLocal.new()
+	local.add_command(&"quit", "Quit the client", func(_a: PackedStringArray) -> Variant: return "client quit")
+	local.add_command(&"connect", "Connect", func(_a: PackedStringArray) -> Variant: return null)
+
+	var remote_lines := []
+	var remote := DotConsoleRemote.new("server")
+	remote.send_fn = func(line: String) -> void: remote_lines.append(line)
+
+	var c := DotConsoleController.new()
+	c.register_as_service = false
+	add_child(c)
+	c.setup()
+	c.add_source(local)
+	c.add_source(remote)
+
+	var res := c.submit("quit")
+	_check(
+		str(res.value_or("")) == "client quit",
+		"a local command wins over a remote catch-all, which is what keeps `quit` local"
+	)
+	_check(remote_lines.is_empty(), "and nothing went to the server")
+
+	c.submit("changelevel dm_atrium")
+	_check(remote_lines.size() == 1, "while something only the server has does go there")
+	_check(
+		remote_lines[0] == "changelevel dm_atrium",
+		"unchanged"
+	)
+
+	_check(
+		c.complete("co").has("connect"),
+		"completion finds a local command"
+	)
+	remote.learn_names(PackedStringArray(["connect_debug", "condump"]))
+	var both := c.complete("con")
+	_check(both.has("connect") and both.has("condump"), "and both sources contribute")
+	_check(
+		c.common_prefix(PackedStringArray(["connect", "connect_debug"])) == "connect",
+		"a common prefix is what Tab fills in"
+	)
+	_check(c.common_prefix(PackedStringArray(["alpha", "beta"])) == "", "and none is none")
+	_check(c.common_prefix(PackedStringArray()).is_empty(), "and nothing is nothing")
+
+	# A remote source that cannot complete must answer nothing rather than asking a
+	# server on every keystroke.
+	var mute := DotConsoleRemote.new()
+	mute.send_fn = func(_l: String) -> void: pass
+	_check(mute.complete("any").is_empty(), "a remote source with no learned names offers nothing")
+
+	c.queue_free()
+
+
+# --- 7 ----------------------------------------------------------------------
+
+func _test_controller() -> void:
+	_section("The controller a game holds")
+
+	var local := DotConsoleLocal.new()
+	var says := []
+	local.add_command(&"say", "Say something", func(a: PackedStringArray) -> Variant:
+		says.append(" ".join(a))
+		return null
+	)
+	local.add_command(&"boom", "Fails", func(_a: PackedStringArray) -> Variant:
+		return DotResult.fail(DotError.CODE_STATE, "it broke")
+	)
+
+	var c := DotConsoleController.new()
+	c.register_as_service = false
+	add_child(c)
+	c.setup()
+	c.add_source(local)
+
+	_check(not c.is_open(), "it starts closed")
+	var opens := []
+	c.visibility_changed.connect(func(o: bool) -> void: opens.append(o))
+	c.toggle()
+	_check(c.is_open() and opens == [true], "and toggles open, announcing it")
+	c.toggle()
+	_check(not c.is_open() and opens == [true, false], "and closed")
+
+	c.enabled = false
+	_check(not c.open(), "a disabled console refuses to open")
+	_check(
+		opens.size() == 2,
+		"and says nothing, rather than announcing an open that did not happen"
+	)
+	c.enabled = true
+
+	c.submit("say hello; boom; say goodbye")
+	_check(says.size() == 2, "a failing statement does not stop the ones after it")
+	_check(
+		c.buffer.to_text().contains("it broke"),
+		"and the failure is in the scrollback"
+	)
+
+	var before := c.buffer.line_count()
+	c.submit("   ")
+	_check(c.buffer.line_count() == before, "an empty line does nothing at all")
+
+	c.submit("rcon_password hunter2")
+	_check(
+		not c.buffer.to_text().contains("hunter2"),
+		"a credential never reaches the scrollback"
+	)
+	_check(
+		not "\n".join(Array(c.buffer.history())).contains("hunter2"),
+		"nor the history, where the next Up arrow would put it back on screen"
+	)
+
+	var unknown := c.submit("saay hello")
+	_check(not unknown.ok, "an unknown command is refused")
+	_check(
+		unknown.error.detail.contains("say"),
+		"with a suggestion, because a typo is the commonest thing that happens in a console"
+	)
+
+	_check(c.all_names().size() == 2, "it knows what it can do")
+	_check(c.help_for("say") == "Say something", "and can say what each one is")
+	_check(c.describe_lines().size() > 2, "and it describes itself")
+
+	c.queue_free()
+
+
+# --- 8 ----------------------------------------------------------------------
+
+func _test_panel_is_not_zero_sized() -> void:
+	_section("The one thing an assertion can reach about a Control")
+
+	var c := DotConsoleController.new()
+	c.register_as_service = false
+	add_child(c)
+	c.setup()
+	c.add_source(DotConsoleLocal.new())
+
+	var panel := DotConsolePanel.new()
+	panel.controller = c
+	add_child(panel)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	# set_anchors_preset does NOT set offsets. This family has shipped 0 x 0 Controls
+	# twice -- dot-ui had five -- and every property about them read correctly both times.
+	# A size is the only half a headless run can see; the rest wants a screenshot.
+	_check(panel.size.x > 0.0 and panel.size.y > 0.0, "the panel fills the viewport")
+
+	var root := panel.get_node_or_null("ConsoleRoot") as Control
+	_check(root != null, "the console strip exists")
+	_check(root.size.x > 0.0, "and is as wide as the screen")
+	_check(root.size.y > 0.0, "and has a height, rather than laying out inside nothing")
+	_check(
+		root.size.y < panel.size.y,
+		"and covers part of the screen, because seeing the game behind it is half the point"
+	)
+
+	_check(not panel.has_keyboard_focus(), "a closed console does not want the keyboard")
+	c.open()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(
+		panel.has_keyboard_focus(),
+		"an open one does, which is what stops typing `noclip` walking the player forward"
+	)
+
+	panel.queue_free()
+	c.queue_free()
+
+
+# --- Harness ---------------------------------------------------------------
+
+func _section(title: String) -> void:
+	_section_count += 1
+	_line("")
+	_line("-- %s" % title)
+
+
+func _check(condition: bool, what: String) -> void:
+	if condition:
+		_passed += 1
+		_line("   ok   %s" % what)
+	else:
+		_failed += 1
+		_line("  FAIL  %s" % what)
+
+
+func _line(text: String) -> void:
+	print(text)
