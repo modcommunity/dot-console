@@ -355,6 +355,23 @@ func _test_controller() -> void:
 	c.submit("   ")
 	_check(c.buffer.line_count() == before, "an empty line does nothing at all")
 
+	# The chat prefix, forgiven. The same commands are typable in chat on a dot-server with
+	# `sv_chat_commands` on, and the finger that learned `/` there arrives here with it.
+	var said := says.size()
+	c.submit("/say hello")
+	_check(says.size() == said + 1, "a line typed with chat's `/` runs anyway")
+	_check(
+		Array(c.buffer.history()).has("say hello"),
+		"and the history keeps what RAN, so Up-arrow does not replay a riddle"
+	)
+	c.submit("!say hello")
+	_check(says.size() == said + 2, "and `!` too, which is the other half of the habit")
+	var bare := c.submit("/")
+	_check(
+		not bare.ok,
+		"a prefix on its own is still a line, not an empty one that silently does nothing"
+	)
+
 	c.submit("rcon_password hunter2")
 	_check(
 		not c.buffer.to_text().contains("hunter2"),

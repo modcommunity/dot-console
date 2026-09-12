@@ -126,7 +126,7 @@ func sources() -> Array[DotConsoleSource]:
 ## the rest: `map dm_atrium; say hello` with a bad map name should still say hello, which
 ## is what every operator typing a setup line expects.
 func submit(line: String) -> DotResult:
-	var trimmed := line.strip_edges()
+	var trimmed := strip_chat_prefix(line.strip_edges())
 	if trimmed.is_empty():
 		return DotResult.success("")
 
@@ -146,6 +146,24 @@ func submit(line: String) -> DotResult:
 		last = _run_one(statement)
 		buffer.append_result(last)
 	return last
+
+
+## Drops a leading chat prefix, so a line typed the way chat wants it still runs here.
+##
+## Before the history and before the echo, so Up-arrow returns the line that ran rather
+## than the line that was typed — a console that replays `/map` and then says `/map` is
+## unknown has made the user's own history into the bug.
+func strip_chat_prefix(line: String) -> String:
+	if config == null:
+		return line
+	for prefix in config.chat_command_prefixes:
+		var p := str(prefix)
+		# `length()` rather than `is_empty()` on the remainder: a bare "/" is somebody
+		# mid-type or a command that genuinely is one character, and eating it leaves them
+		# pressing Enter on nothing and being told nothing.
+		if p != "" and line.begins_with(p) and line.length() > p.length():
+			return line.substr(p.length()).strip_edges()
+	return line
 
 
 func _run_one(statement: String) -> DotResult:

@@ -39,6 +39,19 @@ extends DotConfig
 ## Lines of input history kept.
 @export_range(4, 10000, 1) var history_lines: int = 128
 
+## Chat prefixes a console line may start with, which are stripped before it runs.
+##
+## [b]The console has never needed one, and now it forgives one.[/b] The same commands are
+## typable in both places — a server with `sv_chat_commands` on takes `/map surf_beginner`
+## in the chat box — and the finger that learned the prefix there does not unlearn it on
+## the way to the console. Without this, `/map` is an unknown command called "/map" and the
+## suggester offers "map", which is a riddle rather than an answer.
+##
+## Only ever stripped from the FRONT of the whole line, and only when something follows it:
+## a lone "/" stays as typed, and a statement separator never gains one. Empty the array
+## for a console whose own commands start with a slash.
+@export var chat_command_prefixes: PackedStringArray = PackedStringArray(["/", "!"])
+
 ## Whether to echo the line that was typed above its output.
 ##
 ## On: a console that shows output with no prompt is unreadable the moment two commands
