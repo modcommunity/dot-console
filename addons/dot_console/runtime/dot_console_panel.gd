@@ -236,12 +236,15 @@ func _on_input_key(event: InputEvent) -> void:
 
 
 func _complete() -> void:
-	var partial := _input.text.strip_edges()
-	if partial.contains(" "):
-		# Argument completion belongs to whoever knows what the argument means, and only
-		# some sources do. Offering nothing is honest; offering command names in an
-		# argument position is worse than offering nothing.
-		return
+	# Left only. A trailing space is the difference between completing the command that is
+	# already typed and completing its first argument, and `strip_edges()` erases it.
+	var partial := _input.text.lstrip(" \t")
+	# Argument completion belongs to whoever knows what the argument means, and only some
+	# sources do -- so it is asked for rather than assumed. A source that has none answers
+	# with nothing and the box is left alone, which is the same outcome this used to get by
+	# refusing to ask; the difference is the ones that DO. dot-server's console completes
+	# player names for `kick` and game ids for `changegame`, and dot-log completes its own
+	# subcommands and level names, and none of that could arrive while this returned here.
 	var candidates := controller.complete(partial)
 	if candidates.is_empty():
 		_hint.visible = false
@@ -258,8 +261,29 @@ func _complete() -> void:
 	if prefix.length() > partial.length():
 		_input.text = prefix
 		_input.caret_column = _input.text.length()
-	_hint.text = "  ".join(candidates)
+	_hint.text = "  ".join(Array(_hint_tails(candidates)))
 	_hint.visible = true
+
+
+## The part of each candidate that differs, for the line under the input box.
+##
+## Candidates are whole command lines, because that is what the box is replaced with. A
+## hint built from them repeats the command word once per candidate -- `kick Alice  kick
+## Bob  kick Carol` -- which is three times the width for none of the information. The
+## words every candidate already agrees on are the words already typed.
+func _hint_tails(candidates: PackedStringArray) -> PackedStringArray:
+	var shared := controller.common_prefix(candidates)
+	var cut := shared.rfind(" ") + 1
+
+	if cut <= 0:
+		return candidates
+
+	var out := PackedStringArray()
+
+	for c in candidates:
+		out.append(c.substr(cut))
+
+	return out
 
 
 ## Whether the console currently wants the keyboard.

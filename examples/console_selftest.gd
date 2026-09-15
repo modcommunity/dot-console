@@ -14,7 +14,7 @@ extends Node
 const FakeSettings := preload("res://fixtures/fake_settings.gd")
 
 const SECTIONS := 8
-const CHECKS := 89
+const CHECKS := 96
 
 var _passed := 0
 var _failed := 0
@@ -304,7 +304,58 @@ func _test_precedence_and_completion() -> void:
 	mute.send_fn = func(_l: String) -> void: pass
 	_check(mute.complete("any").is_empty(), "a remote source with no learned names offers nothing")
 
+	# Argument completion, which the panel used to refuse to ask for. A source that has it
+	# answers with WHOLE LINES, because the box is replaced with whatever is picked -- a
+	# candidate that was only the argument would delete the command word with it.
+	var arg_source := ArgSource.new()
+	var c2 := DotConsoleController.new()
+	add_child(c2)
+	c2.add_source(arg_source)
+
+	var args := c2.complete("kick ")
+	_check(args.size() == 3 and args[0] == "kick Alice", "an argument completes as a whole line")
+	_check(
+		c2.complete("kick Bo").size() == 1 and c2.complete("kick Bo")[0] == "kick Bob",
+		"and a typed prefix narrows it"
+	)
+	_check(
+		c2.common_prefix(PackedStringArray(["kick Alice", "kick Amber"])) == "kick A",
+		"the common prefix of two argument lines keeps the command word"
+	)
+
+	c2.queue_free()
 	c.queue_free()
+
+
+## A source that completes arguments, for the half of completion that used to have
+## nowhere to arrive. Bare [DotConsoleSource] rather than a real console: what is being
+## asserted is the contract, not anybody's implementation of it.
+class ArgSource:
+	extends DotConsoleSource
+
+	func names() -> PackedStringArray:
+		return PackedStringArray(["kick"])
+
+	func claims(name: String) -> bool:
+		return name.to_lower().begins_with("kick")
+
+	func execute(_line: String) -> DotResult:
+		return DotResult.success("")
+
+	func complete(partial: String, _limit: int = 24) -> PackedStringArray:
+		var words := partial.split(" ", false)
+
+		if words.is_empty() or words[0] != "kick":
+			return PackedStringArray()
+
+		var prefix := "" if partial.ends_with(" ") else words[words.size() - 1]
+		var out := PackedStringArray()
+
+		for who in ["Alice", "Amber", "Bob"]:
+			if who.begins_with(prefix):
+				out.append("kick " + who)
+
+		return out
 
 
 # --- 7 ----------------------------------------------------------------------

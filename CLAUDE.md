@@ -87,6 +87,19 @@ Order is precedence, and a remote source added last catches what nothing local c
 - **Argument completion.** It needs a source that knows what an argument means. dot-server's console has that and offers it through `complete()`; a remote one cannot, and offering command names in an argument position is worse than offering nothing.
 - **Log mirroring on by default.** `mirror_log` is off. A dedicated server at DEBUG produces more lines per second than a player can read, and a console that is a wall of noise is one nobody opens.
 
+## The panel completes arguments now, and did not before
+
+`_complete()` returned early on any space in the input box, with a comment saying argument completion belongs to whoever knows what the argument means. That was right about the principle and wrong about the consequence: **it never asked.** A source with argument completion — dot-server's console, which knows who is connected and what games are loadable, and dot-log, which knows its own subcommands and the six level names — was never given the chance to answer, so `kick ` and `log ` offered nothing on every console in this family.
+
+It asks now. A source with nothing to say still answers with nothing and the box is left alone, so the outcome for those is exactly what it was; the difference is the ones that do.
+
+Two details the fix depends on:
+
+- **`lstrip`, never `strip_edges`.** A trailing space is the difference between completing the command that is already typed and completing its first argument. `strip_edges()` erases it, and then `kick ` completes to `kick` forever.
+- **Candidates are whole lines**, because `_complete()` replaces the input box with the one it picked — a candidate that was only the argument would take the command word with it. The hint line under the box strips the words every candidate agrees on, so three players read as `Alice  Amber  Bob` rather than as `kick Alice  kick Bob  kick Carol`.
+
+The other half of this seam is in dot-server, where `DotConsole.complete()` now delegates to `DotConCommand.completer` — which until then was set by seven builtins and read by nothing at all.
+
 ## Validating
 
 ```bash
@@ -97,6 +110,8 @@ done
 timeout 120 godot --headless --path . res://examples/console_selftest.tscn
 ```
 
-8 sections, 80 checks. The last section builds a real `DotConsolePanel` and asserts it has a **size**, because `set_anchors_preset` does not set offsets and this family has shipped 0 × 0 `Control`s twice with every property reading correctly. That is the only half an assertion can reach; the rest wants a screenshot.
+8 sections, 96 checks. The last section builds a real `DotConsolePanel` and asserts it has a **size**, because `set_anchors_preset` does not set offsets and this family has shipped 0 × 0 `Control`s twice with every property reading correctly. That is the only half an assertion can reach; the rest wants a screenshot.
+
+**The number in this file was wrong and the guard was shouting about it.** `CHECKS` said 89, the suite ran 93, and every run therefore ended `ERROR: 93 checks ran, 89 expected` and exited 1 — the guard against a section aborting part-way, permanently firing about nothing. A check that is always red is a check nobody reads, which is the same failure it exists to catch one level up. Update it in the same commit as any test you add.
 
 `CHECKS` is a total as well as a section count. A script error inside a test aborts *that test*, not the run — dot-settings proved it, reporting "0 failed" and exiting 0 with eight checks missing — and the section counter cannot see it because the section had already announced itself.
