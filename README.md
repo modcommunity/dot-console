@@ -70,6 +70,6 @@ Copy `addons/dot_console/` and [`dot-core`](https://github.com/modcommunity/dot-
 
 [dot-core](https://github.com/modcommunity/dot-core). Nothing else, and in particular not dot-server, which it bridges to by duck typing, nor dot-ui.
 
-## License
+## Licence
 
-MIT.
+MIT. See [LICENSE](LICENSE).
