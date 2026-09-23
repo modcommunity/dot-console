@@ -22,7 +22,9 @@ extends DotConsoleSource
 ## Something ran and produced output.
 signal output(text: String, level: int)
 
-const CHANNEL := "console"
+# No log channel: what it returns is console OUTPUT -- the answer to what the player
+# typed -- which the controller prints and which is not a log and must not be levelled.
+# A refused command goes back to the person who typed it.
 
 var _commands: Dictionary = {}
 var _vars: Dictionary = {}

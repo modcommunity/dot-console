@@ -22,7 +22,8 @@ extends Control
 ## catches: only a rendered frame does. `set_anchors_and_offsets_preset` is the spelling
 ## that works and it is used everywhere below.
 
-const CHANNEL := "console"
+# No log channel: a drawer of the controller's buffer, and that buffer mirrors DotLog --
+# so a line from here would appear in the panel it came from. The controller logs.
 
 @export var controller: DotConsoleController = null
 
