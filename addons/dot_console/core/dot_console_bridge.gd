@@ -29,7 +29,10 @@ var _names_fresh := false
 
 
 static func wrap(target: Object, label: String = "") -> DotConsoleBridge:
-	var b := DotConsoleBridge.new()
+	# Not this class's own name. A script that names itself in an expression, loaded after
+	# its base, cuts Godot 4.7.2's exit teardown short and leaks every script loaded before
+	# it. See docs/gdscript-hazards.md, "A script that names itself".
+	var b := new()
 	b._bind(target, label)
 	return b
 
