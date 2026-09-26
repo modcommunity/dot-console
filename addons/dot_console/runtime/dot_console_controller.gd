@@ -19,7 +19,9 @@ extends Node
 ## [/codeblock]
 
 const SERVICE := &"dot_console"
-const CHANNEL := "console"
+# No `const CHANNEL`. This mirrors DotLog into its own scrollback (`_on_log_record`), so a
+# record from here would be drawn back into the console that wrote it; what it does is
+# shown to the person typing, and each source logs the commands it runs.
 
 ## The console opened or closed.
 signal visibility_changed(open: bool)
