@@ -447,7 +447,7 @@ func _test_controller() -> void:
 
 	# The one a prefix-based suggester misses, and it is the commonest typo there is: a
 	# dropped underscore shares ten characters and not one useful prefix. Caught by
-	# game-simple-lobby's own suite, which typed `mastervolume` at a real console.
+	# typing `mastervolume` at a real console.
 	local.add_command(&"master_volume", "Volume", func(_a: PackedStringArray) -> Variant: return null)
 	var dropped := c.submit("mastervolume 1")
 	_check(not dropped.ok, "a dropped underscore is not a command")
