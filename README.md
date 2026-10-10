@@ -55,6 +55,12 @@ panel.controller = console
 canvas_layer.add_child(panel)
 ```
 
+Or all of that in one call — `help`, `clear`, `settings`, every setting the manager's schema declares as a command of its own name, the server's console when one runs in this process, and the panel on its own CanvasLayer. Given a menu (anything with `add_overlay`, like the menu asset's), the console is registered as one of its overlays, so whatever the game does while its menu is open (stop the player, free the pointer) it does while the console is open too:
+
+```gdscript
+console = DotConsoleKit.build(self, settings_manager, menu)
+```
+
 And the one line every game with a console forgets:
 
 ```gdscript

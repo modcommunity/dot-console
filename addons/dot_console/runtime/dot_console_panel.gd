@@ -27,6 +27,11 @@ extends Control
 
 @export var controller: DotConsoleController = null
 
+## The console closed. With [method is_open] and [method close], the shape a menu's list of
+## overlays duck-types (dot-menu's `add_overlay`): registered there, the console is one
+## more thing the game's "something is open" hook knows about. See [DotConsoleKit].
+signal closed()
+
 ## Lines drawn. More than this is in the buffer and reachable by scrolling.
 @export_range(4, 500, 1) var visible_lines: int = 200
 
@@ -122,9 +127,24 @@ func _build() -> void:
 	row.add_child(_input)
 
 
+func is_open() -> bool:
+	return controller != null and controller.is_open()
+
+
+func close() -> void:
+	if controller != null:
+		controller.close()
+
+
+func _on_controller_visibility(open: bool) -> void:
+	if not open:
+		closed.emit()
+
+
 func _bind(c: DotConsoleController) -> void:
 	c.line_appended.connect(_on_line)
 	c.visibility_changed.connect(func(open: bool) -> void: _apply_visible(open, false))
+	c.visibility_changed.connect(_on_controller_visibility)
 	_redraw()
 
 

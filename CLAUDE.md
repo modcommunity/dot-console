@@ -58,7 +58,8 @@ And one found later, by typing at a real console rather than by this suite: **th
 | `DotConsoleBuffer` | Scrollback and history. Both rings. |
 | `DotConsoleConfig` | The key, the sizes, the colours. A `DotConfig`, so dot-ui generates the screen. |
 | `DotConsoleController` | Everything, with no `Control` in it. |
-| `DotConsolePanel` | A `Control` that draws what the controller says. |
+| `DotConsolePanel` | A `Control` that draws what the controller says. Also `is_open`/`close`/`closed`, the shape a menu's overlay list duck-types. |
+| `DotConsoleKit` | The console a game client builds, in one call. See below. |
 
 ## Decisions
 
@@ -100,6 +101,11 @@ Two details the fix depends on:
 
 The other half of this seam is in dot-server, where `DotConsole.complete()` now delegates to `DotConCommand.completer` — which until then was set by seven builtins and read by nothing at all.
 
+## `DotConsoleKit`
+
+- `DotConsoleKit.build(host, settings, menu)` is the whole client console in one call; every setting in the schema becomes a command of its own name.
+- Given a menu, the panel is registered as one of its overlays, because a line edit with focus does not stop an input sampler: unregistered, typing walks the player. Read [docs/console-kit.md](docs/console-kit.md).
+
 ## Validating
 
 ```bash
@@ -110,7 +116,7 @@ done
 timeout 120 godot --headless --path . res://examples/console_selftest.tscn
 ```
 
-8 sections, 96 checks. The last section builds a real `DotConsolePanel` and asserts it has a **size**, because `set_anchors_preset` does not set offsets and this family has shipped 0 × 0 `Control`s twice with every property reading correctly. That is the only half an assertion can reach; the rest wants a screenshot.
+9 sections, 102 checks. The last section builds a real `DotConsolePanel` and asserts it has a **size**, because `set_anchors_preset` does not set offsets and this family has shipped 0 × 0 `Control`s twice with every property reading correctly. That is the only half an assertion can reach; the rest wants a screenshot.
 
 **The number in this file was wrong and the guard was shouting about it.** `CHECKS` said 89, the suite ran 93, and every run therefore ended `ERROR: 93 checks ran, 89 expected` and exited 1 — the guard against a section aborting part-way, permanently firing about nothing. A check that is always red is a check nobody reads, which is the same failure it exists to catch one level up. Update it in the same commit as any test you add.
 

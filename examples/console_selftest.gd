@@ -13,8 +13,8 @@ extends Node
 
 const FakeSettings := preload("res://fixtures/fake_settings.gd")
 
-const SECTIONS := 8
-const CHECKS := 96
+const SECTIONS := 9
+const CHECKS := 102
 
 var _passed := 0
 var _failed := 0
@@ -41,6 +41,7 @@ func _run() -> void:
 	_test_precedence_and_completion()
 	_test_controller()
 	await _test_panel_is_not_zero_sized()
+	await _test_kit()
 
 	_line("")
 	_line("%d sections, %d passed, %d failed" % [_section_count, _passed, _failed])
@@ -552,6 +553,78 @@ func _test_panel_is_not_zero_sized() -> void:
 
 	panel.queue_free()
 	c.queue_free()
+
+
+# --- 9 ----------------------------------------------------------------------
+
+## DotConsoleKit: a setting is a command, and the menu hears the console open and close.
+func _test_kit() -> void:
+	_section("The kit: every setting a command, and the console one of the menu's overlays")
+
+	var host := Node.new()
+	add_child(host)
+	var settings := KitSettings.new()
+	var menu := KitMenu.new()
+	var c := DotConsoleKit.build(host, settings, menu)
+	await get_tree().process_frame
+
+	var names := c.all_names()
+	_check(names.has("net_stat") and names.has("help") and names.has("settings"),
+		"a setting the schema declares is a command, beside help and settings")
+	c.submit("net_stat 2")
+	_check(int(settings.stored.get(&"net_stat", 0)) == 2, "and typing it sets it (%s)" % [settings.stored])
+	_check(c.help_for("net_stat") == "The connection overlay.", "with the setting's own description as its help")
+
+	_check(menu.overlays.size() == 1 and menu.overlays[0] is DotConsolePanel, "the panel is registered as a menu overlay")
+	var panel := menu.overlays[0] as DotConsolePanel
+	c.open()
+	_check(menu.opened == 1 and panel.is_open(), "opening it tells the menu, so the game stops walking and frees the pointer")
+	var closed := [0]
+	panel.closed.connect(func() -> void: closed[0] += 1)
+	panel.close()
+	_check(closed[0] == 1 and not c.is_open(), "and closing it through the menu's close() says so")
+
+	host.queue_free()
+	await get_tree().process_frame
+
+
+class KitSchema extends RefCounted:
+	func keys() -> Array[StringName]:
+		return [&"net_stat"]
+
+	func find(_key: StringName) -> Object:
+		var def := KitDef.new()
+		return def
+
+
+class KitDef extends RefCounted:
+	var description := "The connection overlay."
+
+
+class KitSettings extends RefCounted:
+	var stored := {}
+	var schema := KitSchema.new()
+
+	func get_value(key: StringName) -> Variant:
+		return stored.get(key)
+
+	func set_value(key: StringName, value: Variant) -> Variant:
+		stored[key] = int(value) if str(value).is_valid_int() else value
+		return null
+
+	func describe_lines() -> PackedStringArray:
+		return PackedStringArray(["net_stat %s" % str(stored.get(&"net_stat", 0))])
+
+
+class KitMenu extends RefCounted:
+	var overlays: Array[Control] = []
+	var opened := 0
+
+	func add_overlay(o: Control) -> void:
+		overlays.append(o)
+
+	func overlay_opened() -> void:
+		opened += 1
 
 
 # --- Harness ---------------------------------------------------------------
