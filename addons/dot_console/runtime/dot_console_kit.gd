@@ -74,7 +74,40 @@ static func build(
 	return console
 
 
-## `help`, `clear`, `settings`, and every setting [param settings] declares, by its own
+## The registry name and the script of the player's own block list (dot-chat's
+## `DotChatSelfMute`), reached by name and path so this addon keeps its one dependency.
+const SELF_MUTE_SERVICE := &"dot_self_mute"
+const SELF_MUTE_SCRIPT := "res://addons/dot_chat/runtime/dot_chat_self_mute.gd"
+
+
+## `sm`, the player's own block list: `sm` lists who is here, `sm <number|name|#userid>`
+## mutes or unmutes their chat and voice on this client only. Added when dot-chat is in the
+## build; the same list the chat box's `!sm` runs. False when there is no list to run.
+static func add_self_mute(local: DotConsoleLocal) -> bool:
+	if DotRegistry.get_service(SELF_MUTE_SERVICE) == null and not ResourceLoader.exists(SELF_MUTE_SCRIPT):
+		return false
+	local.add_command(&"sm", "Self mute: sm lists players; sm <number|name|#userid> mutes or unmutes their chat and voice for you only",
+		func(args: PackedStringArray) -> Variant:
+			var mutes := _self_mute()
+			if mutes == null or not mutes.has_method(&"run"):
+				return "There is no block list in this build."
+			return mutes.call(&"run", args)
+	)
+	return true
+
+
+static func _self_mute() -> Object:
+	var found: Object = DotRegistry.get_service(SELF_MUTE_SERVICE)
+	if found != null or not ResourceLoader.exists(SELF_MUTE_SCRIPT):
+		return found
+	var script: Variant = load(SELF_MUTE_SCRIPT)
+	if not (script is Script):
+		return null
+	var shared: Variant = (script as Script).call(&"shared")
+	return shared if shared is Object else null
+
+
+## `help`, `clear`, `settings`, `sm`, and every setting [param settings] declares, by its own
 ## name. The part of [method build] a game with its own panel can still use.
 static func local_source(console: DotConsoleController, settings: Object = null) -> DotConsoleLocal:
 	var local := DotConsoleLocal.new()
@@ -88,6 +121,7 @@ static func local_source(console: DotConsoleController, settings: Object = null)
 		console.buffer.clear()
 		return null
 	)
+	add_self_mute(local)
 	if settings == null:
 		return local
 	if settings.has_method(&"describe_lines"):

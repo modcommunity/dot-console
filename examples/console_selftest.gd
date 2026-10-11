@@ -14,7 +14,7 @@ extends Node
 const FakeSettings := preload("res://fixtures/fake_settings.gd")
 
 const SECTIONS := 9
-const CHECKS := 102
+const CHECKS := 104
 
 var _passed := 0
 var _failed := 0
@@ -565,6 +565,8 @@ func _test_kit() -> void:
 	add_child(host)
 	var settings := KitSettings.new()
 	var menu := KitMenu.new()
+	var self_mute := KitSelfMute.new()
+	DotRegistry.register(&"dot_self_mute", self_mute)
 	var c := DotConsoleKit.build(host, settings, menu)
 	await get_tree().process_frame
 
@@ -584,8 +586,24 @@ func _test_kit() -> void:
 	panel.close()
 	_check(closed[0] == 1 and not c.is_open(), "and closing it through the menu's close() says so")
 
+	# `sm`: the player's own block list (dot-chat's DotChatSelfMute, found by registry name;
+	# a stand-in here, because dot-console does not link dot-chat).
+	_check(names.has("sm"), "sm is a client command when a block list is registered")
+	c.submit("sm")
+	c.submit("sm ada lovelace")
+	_check(self_mute.ran == [[], ["ada", "lovelace"]] and c.buffer.to_text().contains("1. Ada"),
+		"and runs it with its arguments, showing what it answers (%s)" % str(self_mute.ran))
+
 	host.queue_free()
 	await get_tree().process_frame
+	DotRegistry.unregister_instance(&"dot_self_mute", self_mute)
+
+
+class KitSelfMute extends RefCounted:
+	var ran: Array = []
+	func run(args: PackedStringArray) -> PackedStringArray:
+		ran.append(Array(args))
+		return PackedStringArray(["  1. Ada"])
 
 
 class KitSchema extends RefCounted:

@@ -51,6 +51,7 @@ The family's two steps ([game-dev/CLAUDE.md](../../CLAUDE.md#validating-anything
 - A remote source never asks the server per keystroke; it learns names once (`learn_names`). An unprefixed remote source is added last; use `prefix` when the console is not the server's. [design](docs/design.md#decisions)
 - Completion text: `lstrip`, never `strip_edges`; candidates are whole lines. [design](docs/design.md#argument-completion)
 - The console does not pause the game, and a failed statement does not stop the next. [design](docs/design.md#decisions)
+- `sm` (the player's block list) is a kit command found by registry name or dot-chat's script path, never named. [kit](docs/console-kit.md)
 - In a game, register the panel as one of the menu's overlays (`DotConsoleKit` does), or typing walks the player. [kit](docs/console-kit.md)
 - A test that captures a local in a lambda captures it by value: capture an `Array`. [history](docs/history.md#what-building-it-found)
 

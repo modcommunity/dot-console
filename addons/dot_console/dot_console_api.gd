@@ -10,5 +10,6 @@ extends RefCounted
 #    DotConsoleLocal, DotConsoleBridge, DotConsoleRemote, DotConsoleLine, DotConsoleBuffer,
 #    DotConsoleConfig).
 # 2: DotConsoleKit; DotConsolePanel is_open(), close() and closed.
-const LEVEL := 2
+# 3: DotConsoleKit.add_self_mute(local): the `sm` command, in local_source.
+const LEVEL := 3
 const OLDEST := 1
