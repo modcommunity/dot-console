@@ -60,7 +60,14 @@ func execute(line: String) -> DotResult:
 			return DotResult.fail(
 				DotError.CODE_INVALID, "usage: %s <command>" % prefix
 			)
-		payload = line.substr(line.find(parts[1]))
+		# Everything after the prefix's own word. Not `find(parts[1])`, which searched from
+		# the start: `rcon r` found the r inside `rcon` and sent `rcon r`, and a quoted first
+		# argument lost its opening quote.
+		var rest := line.strip_edges()
+		var cut := 0
+		while cut < rest.length() and rest[cut] != " " and rest[cut] != "\t":
+			cut += 1
+		payload = rest.substr(cut).strip_edges()
 
 	send_fn.call(payload)
 	# No output. The answer arrives asynchronously and the game prints it; inventing a

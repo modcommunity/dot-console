@@ -11,5 +11,7 @@ extends RefCounted
 #    DotConsoleConfig).
 # 2: DotConsoleKit; DotConsolePanel is_open(), close() and closed.
 # 3: DotConsoleKit.add_self_mute(local): the `sm` command, in local_source.
-const LEVEL := 3
+# 4: DotConsoleLine.without_secrets(line); redact/is_secret look at every statement and at a
+#    secret command after a prefix word (same signatures, stricter answers).
+const LEVEL := 4
 const OLDEST := 1

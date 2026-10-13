@@ -88,16 +88,51 @@ static func split_statements(line: String) -> PackedStringArray:
 ## The command name survives, so a player can see that they typed it and a support person
 ## can see which command failed. Everything after it becomes asterisks of a fixed width,
 ## because the length of a password is information too.
+##
+## [b]Per statement, and wherever the command sits in it.[/b] Matching only the line's first
+## word let `say hi; rcon_password hunter2` and `rcon rcon_password hunter2` (a remote
+## source's prefix in front) through whole, into the echo and the history.
 static func redact(line: String, secret_commands: Array[String] = DEFAULT_SECRET_COMMANDS) -> String:
-	var parts := split_line(line)
-	if parts.size() < 2:
-		return line
-	if not secret_commands.has(parts[0].to_lower()):
-		return line
-	return "%s ********" % parts[0]
+	return _cut_secrets(line, secret_commands, " ********")
 
 
-## Whether [param line] carries something that must not be echoed.
+## The line as it is safe to keep in the history: [method redact] without the asterisks, so
+## the Up arrow brings back the command and never a value (a recalled `********` would set it).
+static func without_secrets(line: String, secret_commands: Array[String] = DEFAULT_SECRET_COMMANDS) -> String:
+	return _cut_secrets(line, secret_commands, "")
+
+
+## Whether [param line] carries something that must not be echoed: a statement in which a
+## secret command is followed by anything.
 static func is_secret(line: String, secret_commands: Array[String] = DEFAULT_SECRET_COMMANDS) -> bool:
-	var parts := split_line(line)
-	return parts.size() >= 2 and secret_commands.has(parts[0].to_lower())
+	for statement in split_statements(line):
+		if _secret_at(split_line(statement), secret_commands) >= 0:
+			return true
+	return false
+
+
+## The index of the first secret command in [param parts] that has an argument after it, or -1.
+static func _secret_at(parts: PackedStringArray, secret_commands: Array[String]) -> int:
+	for i in range(parts.size() - 1):
+		if secret_commands.has(parts[i].to_lower()):
+			return i
+	return -1
+
+
+## [param line] unchanged when nothing in it is secret; otherwise rebuilt statement by
+## statement, each secret one cut after its command name and [param mask] put in its place.
+static func _cut_secrets(line: String, secret_commands: Array[String], mask: String) -> String:
+	if not is_secret(line, secret_commands):
+		return line
+	var out := PackedStringArray()
+	for statement in split_statements(line):
+		var parts := split_line(statement)
+		var at := _secret_at(parts, secret_commands)
+		if at < 0:
+			out.append(statement)
+			continue
+		var kept := PackedStringArray()
+		for i in range(at + 1):
+			kept.append('"%s"' % parts[i] if parts[i].contains(" ") or parts[i].is_empty() else parts[i])
+		out.append(" ".join(kept) + mask)
+	return "; ".join(out)

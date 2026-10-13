@@ -137,10 +137,7 @@ func submit(line: String) -> DotResult:
 	var shown := DotConsoleLine.redact(trimmed)
 	if config.echo_input:
 		_append("] %s" % shown, DotConsoleBuffer.Level.ECHO)
-	if DotConsoleLine.is_secret(trimmed):
-		buffer.remember(DotConsoleLine.split_line(trimmed)[0])
-	else:
-		buffer.remember(trimmed)
+	buffer.remember(DotConsoleLine.without_secrets(trimmed))
 	submitted.emit(shown)
 
 	var last := DotResult.success("")

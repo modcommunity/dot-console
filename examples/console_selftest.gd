@@ -14,7 +14,7 @@ extends Node
 const FakeSettings := preload("res://fixtures/fake_settings.gd")
 
 const SECTIONS := 9
-const CHECKS := 104
+const CHECKS := 109
 
 var _passed := 0
 var _failed := 0
@@ -117,6 +117,23 @@ func _test_redaction() -> void:
 		shown == "rcon_password ********",
 		"with a fixed width, because the length of a password is information too"
 	)
+
+	# Matched on the first word only, these two went through whole.
+	var chained := DotConsoleLine.redact("say hi; rcon_password hunter2")
+	_check(
+		chained == "say hi; rcon_password ********",
+		"a secret in a later statement is hidden too (%s)" % chained
+	)
+	var forwarded := DotConsoleLine.redact("rcon rcon_password hunter2")
+	_check(
+		forwarded == "rcon rcon_password ********",
+		"and one behind a remote source's prefix (%s)" % forwarded
+	)
+	_check(
+		DotConsoleLine.without_secrets("say hi; rcon_password hunter2") == "say hi; rcon_password",
+		"the history keeps the commands and never the value"
+	)
+	_check(DotConsoleLine.redact("say hi") == "say hi", "and a line with nothing secret is untouched")
 
 
 # --- 3 ----------------------------------------------------------------------
@@ -283,6 +300,18 @@ func _test_precedence_and_completion() -> void:
 	_check(
 		remote_lines[0] == "changelevel dm_atrium",
 		"unchanged"
+	)
+
+	# Through a prefixed source, the payload is everything after the prefix's own word.
+	var prefixed_lines := []
+	var prefixed := DotConsoleRemote.new("rcon")
+	prefixed.prefix = "rcon"
+	prefixed.send_fn = func(line: String) -> void: prefixed_lines.append(line)
+	var _r := prefixed.execute("rcon r")
+	var _q := prefixed.execute('rcon "say hi" now')
+	_check(
+		prefixed_lines == ["r", '"say hi" now'],
+		"a prefixed source sends what follows the prefix, however it starts (%s)" % str(prefixed_lines)
 	)
 
 	_check(
