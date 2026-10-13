@@ -14,7 +14,7 @@ extends Node
 const FakeSettings := preload("res://fixtures/fake_settings.gd")
 
 const SECTIONS := 9
-const CHECKS := 109
+const CHECKS := 110
 
 var _passed := 0
 var _failed := 0
@@ -134,6 +134,8 @@ func _test_redaction() -> void:
 		"the history keeps the commands and never the value"
 	)
 	_check(DotConsoleLine.redact("say hi") == "say hi", "and a line with nothing secret is untouched")
+	_check(DotConsoleLine.redact("say my password is wrong") == "say my password is wrong",
+		"nor chat that merely mentions a password")
 
 
 # --- 3 ----------------------------------------------------------------------

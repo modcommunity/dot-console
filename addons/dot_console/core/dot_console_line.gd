@@ -89,7 +89,7 @@ static func split_statements(line: String) -> PackedStringArray:
 ## can see which command failed. Everything after it becomes asterisks of a fixed width,
 ## because the length of a password is information too.
 ##
-## [b]Per statement, and wherever the command sits in it.[/b] Matching only the line's first
+## [b]Per statement, first word or behind a prefix.[/b] Matching only the line's first
 ## word let `say hi; rcon_password hunter2` and `rcon rcon_password hunter2` (a remote
 ## source's prefix in front) through whole, into the echo and the history.
 static func redact(line: String, secret_commands: Array[String] = DEFAULT_SECRET_COMMANDS) -> String:
@@ -111,9 +111,11 @@ static func is_secret(line: String, secret_commands: Array[String] = DEFAULT_SEC
 	return false
 
 
-## The index of the first secret command in [param parts] that has an argument after it, or -1.
+## The index of the secret command in [param parts] that has an argument after it, or -1:
+## the statement's first word, or its second behind a forwarding prefix (`rcon
+## rcon_password x`). Not any word: `say my password is wrong` is chat, not a credential.
 static func _secret_at(parts: PackedStringArray, secret_commands: Array[String]) -> int:
-	for i in range(parts.size() - 1):
+	for i in range(mini(2, parts.size() - 1)):
 		if secret_commands.has(parts[i].to_lower()):
 			return i
 	return -1
