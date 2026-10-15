@@ -18,7 +18,11 @@ const LEVEL_NAMES: Array[String] = ["trace", "debug", "info", "warn", "error", "
 var capacity: int = 2048
 var history_capacity: int = 128
 
+# A ring: _head is the index of the oldest line once the array is full. remove_at(0) on a
+# full array shifts every element on every append, and a server logging per tick sits
+# permanently full. Until it is full _head stays 0 and the array is simply in order.
 var _lines: Array[Dictionary] = []
+var _head: int = 0
 var _history: PackedStringArray = PackedStringArray()
 var _history_cursor: int = -1
 var _draft: String = ""
@@ -36,13 +40,35 @@ func _init(p_capacity: int = 2048, p_history: int = 128) -> void:
 
 func append(text: String, level: Level = Level.INFO) -> void:
 	for one in text.split("\n"):
-		_lines.append({
+		var entry := {
 			"text": one,
 			"level": int(level),
 			"at": Time.get_ticks_msec(),
-		})
-	while _lines.size() > capacity:
-		_lines.remove_at(0)
+		}
+		# capacity is a plain var the controller assigns after construction, so it can
+		# move under a wrapped ring; put the lines back in order before trusting _head.
+		if _lines.size() > capacity or (_head != 0 and _lines.size() < capacity):
+			_linearise()
+		if _lines.size() < capacity:
+			_lines.append(entry)
+		else:
+			_lines[_head] = entry
+			_head = (_head + 1) % _lines.size()
+
+
+func _at(i: int) -> Dictionary:
+	return _lines[(_head + i) % _lines.size()]
+
+
+## Oldest-first order restored, trimmed to the current capacity (oldest dropped).
+func _linearise() -> void:
+	var ordered: Array[Dictionary] = []
+	for i in range(_lines.size()):
+		ordered.append(_at(i))
+	if ordered.size() > capacity:
+		ordered = ordered.slice(ordered.size() - capacity)
+	_lines = ordered
+	_head = 0
 
 
 func append_lines(lines: PackedStringArray, level: Level = Level.INFO) -> void:
@@ -83,7 +109,7 @@ func tail(count: int, min_level: Level = Level.TRACE, contains: String = "") -> 
 	var out: Array[Dictionary] = []
 	var needle := contains.to_lower()
 	for i in range(_lines.size() - 1, -1, -1):
-		var l := _lines[i]
+		var l := _at(i)
 		if int(l["level"]) < int(min_level):
 			continue
 		if needle != "" and not str(l["text"]).to_lower().contains(needle):
@@ -96,12 +122,14 @@ func tail(count: int, min_level: Level = Level.TRACE, contains: String = "") -> 
 
 func clear() -> void:
 	_lines.clear()
+	_head = 0
 
 
 ## Every line as plain text, for a bug report or a `condump`.
 func to_text(min_level: Level = Level.TRACE) -> String:
 	var out := PackedStringArray()
-	for l in _lines:
+	for i in range(_lines.size()):
+		var l := _at(i)
 		if int(l["level"]) >= int(min_level):
 			out.append(str(l["text"]))
 	return "\n".join(out)

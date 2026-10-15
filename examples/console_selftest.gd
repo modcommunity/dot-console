@@ -14,7 +14,7 @@ extends Node
 const FakeSettings := preload("res://fixtures/fake_settings.gd")
 
 const SECTIONS := 9
-const CHECKS := 110
+const CHECKS := 113
 
 var _passed := 0
 var _failed := 0
@@ -151,6 +151,25 @@ func _test_buffer() -> void:
 		b.tail(1)[0]["text"] == "line 19",
 		"keeping the newest, which is the half anybody is reading"
 	)
+
+	# Order across the wrap: 20 appends into 8 slots wrapped twice and a half.
+	var all := b.tail(100)
+	var in_order := all.size() == 8
+	for i in range(all.size()):
+		if all[i]["text"] != "line %d" % (12 + i):
+			in_order = false
+	_check(in_order, "the ring hands lines back oldest first after it has wrapped")
+	_check(
+		b.to_text().begins_with("line 12\n") and b.to_text().ends_with("\nline 19"),
+		"and to_text reads the same order"
+	)
+	b.capacity = 3
+	b.append("line 20")
+	_check(
+		b.line_count() == 3 and b.tail(10)[0]["text"] == "line 18",
+		"a capacity lowered under a wrapped ring keeps the newest"
+	)
+	b.capacity = 8
 
 	b.clear()
 	b.append("an error", DotConsoleBuffer.Level.ERROR)
