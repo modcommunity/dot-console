@@ -14,7 +14,7 @@ extends RefCounted
 # 4: DotConsoleLine.without_secrets(line); redact/is_secret look at every statement and at a
 #    secret command after a prefix word (same signatures, stricter answers).
 # 5: DotConsoleConfig.apply_cfg_file and load_cfg read cfg/addons/dot_console/console.yml and
-#    the operator's cfg/server/dot_console/, with a flat cfg/console.yml as a shim until
+#    the operator's cfg/server/addons/dot_console/, with a flat cfg/console.yml as a shim until
 #    2026-12-31. Needs dot-core API level 16 (DotAddonConfig.apply_file).
 const LEVEL := 5
 const OLDEST := 1

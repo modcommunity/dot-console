@@ -22,7 +22,7 @@ func _ready() -> void:
 func _run() -> void:
 	print("dot-console cfg self-test")
 	var addon_dir := "user://cfg/addons/" + FOLDER
-	var server_dir := "user://cfg/server/" + FOLDER
+	var server_dir := "user://cfg/server/addons/" + FOLDER
 	_clean(addon_dir, server_dir)
 	DotCfgLegacy.reset()
 
@@ -44,6 +44,15 @@ func _run() -> void:
 	config = DotConsoleConfig.new()
 	res = config.load_cfg(FILE, LEGACY)
 	_check(res.ok and config.scrollback_lines == 3000, "the operator's server layer wins")
+
+	_clean(addon_dir, server_dir)
+	DotCfgLegacy.reset()
+	_write("user://cfg/server/" + FOLDER + "/" + FILE, "scrollback_lines: 4000\n")
+	config = DotConsoleConfig.new()
+	res = config.load_cfg(FILE, LEGACY)
+	_check(res.ok and config.scrollback_lines == 4000, "the old cfg/server/dot_console/ still loads")
+	_check(DotCfgLegacy.warned_count() == 1, "and warns once")
+	DotPaths.remove_tree("user://cfg/server/" + FOLDER)
 
 	_clean(addon_dir, server_dir)
 	DotCfgLegacy.reset()

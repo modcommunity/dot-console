@@ -114,7 +114,7 @@ func validate() -> DotResult:
 const CFG_ADDON := "dot-console"
 
 
-## Applies [param file_name] from `cfg/addons/dot_console/`, then the operator's `cfg/server/dot_console/`.
+## Applies [param file_name] from `cfg/addons/dot_console/`, then the operator's `cfg/server/addons/dot_console/`.
 ## A flat [param legacy_dir]/[param file_name] is still read (one WARN) while no new copy exists.
 ## Secrets stay file-only: the environment and command line still refuse them.
 func apply_cfg_file(file_name: String = "console.yml", legacy_dir: String = "res://cfg") -> DotResult:
