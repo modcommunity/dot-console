@@ -34,7 +34,7 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first.
 | `DotConsolePanel` | the `Control` that draws it; also `is_open`/`close`/`closed`, the shape a menu's overlay list duck-types |
 | `DotConsoleKit` | the console a game client builds, in one call |
 
-`core/` holds the sources, line, buffer and config; `runtime/` the controller, panel and kit; `examples/console_selftest.tscn` is the suite.
+`core/` holds the sources, line, buffer and config; `runtime/` the controller, panel and kit; `examples/console_selftest.tscn` is the suite and `examples/cfg_selftest.tscn` covers the yml layout (new path, flat shim, server layer).
 
 ## Running and testing
 

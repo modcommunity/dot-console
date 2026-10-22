@@ -68,6 +68,8 @@ if panel.has_keyboard_focus():
     return      # otherwise typing `noclip` walks the player forward
 ```
 
+An operator's yml lives in `cfg/addons/dot_console/console.yml` with `cfg/server/dot_console/` over it: `DotConsoleConfig.new().load_cfg()` reads both, then `DOT_CONSOLE_*` and `--console-*`. A flat `cfg/console.yml` is still read with one WARN until 2026-12-31. The rcon port, allow-list and password are not this addon's: dot-server-deploy reads `rcon.yml`, and the password stays in a file only.
+
 ## Installing
 
 Copy `addons/dot_console/` and [`dot-core`](https://github.com/modcommunity/dot-core)'s `addons/dot_core/` into your project and enable dot-console in **Project → Project Settings → Plugins**.
