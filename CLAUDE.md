@@ -26,6 +26,7 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first.
 | `DotConsoleLocal` | the client's own commands and variables; `bind_setting` wires one straight through to dot-settings by duck typing, so there is one copy of a value |
 | `DotConsoleBridge` | wraps an existing console (dot-server's); the file that stops this being a second command system |
 | `DotConsoleRemote` | a `send_fn` to a wire; deliberately the least capable source |
+| `DotConsoleProfileEdit` | the `profile_edit` command (set, reset_key, reset, save) that builds a `DotProfileRuntime` request and hands it to a `submit` callable; the server decides who may |
 | `DotConsoleLine` | splitting, statements and redaction, one pass over one string |
 | `DotConsoleBuffer` | scrollback and history, both rings |
 | `DotConsoleConfig` | the key, sizes and colours; a `DotConfig` |

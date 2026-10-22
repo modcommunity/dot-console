@@ -13,8 +13,8 @@ extends Node
 
 const FakeSettings := preload("res://fixtures/fake_settings.gd")
 
-const SECTIONS := 9
-const CHECKS := 113
+const SECTIONS := 10
+const CHECKS := 125
 
 var _passed := 0
 var _failed := 0
@@ -42,6 +42,7 @@ func _run() -> void:
 	_test_controller()
 	await _test_panel_is_not_zero_sized()
 	await _test_kit()
+	_test_profile_edit()
 
 	_line("")
 	_line("%d sections, %d passed, %d failed" % [_section_count, _passed, _failed])
@@ -693,6 +694,49 @@ class KitMenu extends RefCounted:
 
 	func overlay_opened() -> void:
 		opened += 1
+
+
+func _test_profile_edit() -> void:
+	_section("profile_edit builds a request and hands it to whoever decides")
+
+	var base := "user://console_profile_edit"
+	DirAccess.make_dir_recursive_absolute(base + "/addons/dot-npc/npc")
+	var f := FileAccess.open(base + "/addons/dot-npc/npc/zombie.yml", FileAccess.WRITE)
+	f.store_string("health: 50\n")
+	f.close()
+	var set := DotProfileSet.create("dot-npc", "mygame", "npc", [
+		DotProfileSet.field("health", "int", 100, {"min": 1, "max": 1000}),
+	])
+	set.roots = PackedStringArray([base])
+	var rt := DotProfileRuntime.new()
+	rt.add_set(set)
+	rt.save_root = base
+	var who := ["admin"]
+	rt.permit = func(actor: Variant, _flag: String) -> bool: return actor == "admin"
+	var local := DotConsoleLocal.new()
+	DotConsoleProfileEdit.register(local, func(req: Dictionary) -> DotResult:
+		return rt.handle_request(who[0], req))
+
+	_check(local.claims("profile_edit"), "the command is registered")
+	var res := local.execute("profile_edit set npc zombie health 400")
+	_check(res.ok, "a set is parsed and called through")
+	_check(set.load_profile("zombie").value.get_value("health") == 400, "the value arrived as an int")
+	_check(rt.revision("npc", "zombie") == 1, "the revision moved")
+
+	who[0] = "player"
+	var denied := local.execute("profile_edit set npc zombie health 5")
+	_check(not denied.ok and denied.error.code == DotError.CODE_FORBIDDEN, "a non-admin is refused by the server's check")
+	who[0] = "admin"
+
+	_check(not local.execute("profile_edit set npc zombie").ok, "a short line returns the usage")
+	_check(not local.execute("profile_edit explode npc zombie").ok, "an unknown op returns the usage")
+	var bad := local.execute("profile_edit set npc zombie health 99999")
+	_check(not bad.ok and bad.error.code == DotError.CODE_INVALID, "an out-of-range value is a DotResult error")
+	var saved := local.execute("profile_edit save npc zombie")
+	_check(saved.ok, "save runs for an admin: " + ("" if saved.ok else saved.error.message))
+	_check(local.execute("profile_edit reset_key npc zombie health").ok, "reset_key runs")
+	_check(DotConsoleProfileEdit.parse_value("2.5") == 2.5 and DotConsoleProfileEdit.parse_value("true") == true, "values are typed by their look")
+	_check(DotConsoleProfileEdit.parse_value("[1,2]") is Array and DotConsoleProfileEdit.parse_value("hi") == "hi", "JSON lists and plain text")
 
 
 # --- Harness ---------------------------------------------------------------
