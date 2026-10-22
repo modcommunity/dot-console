@@ -1,0 +1,4 @@
+# size
+# Baselines only shrink: scripts/<gate> --update lowers or drops entries and refuses to add.
+examples/console_selftest.gd::_test_controller	151
+examples/console_selftest.gd::_test_precedence_and_completion	90
