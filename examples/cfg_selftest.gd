@@ -45,6 +45,25 @@ func _run() -> void:
 	res = config.load_cfg(FILE, LEGACY)
 	_check(res.ok and config.scrollback_lines == 3000, "the operator's server layer wins")
 
+	var game_dir := "user://cfg/game/mg-test/" + FOLDER
+	var server_game_dir := "user://cfg/server/game/mg-test/" + FOLDER
+	DotAddonConfig.game = "mg-test"
+	_write(game_dir.path_join(FILE), "scrollback_lines: 3500\n")
+	config = DotConsoleConfig.new()
+	res = config.load_cfg(FILE, LEGACY)
+	_check(res.ok and config.scrollback_lines == 3000, "the operator's layer still wins over the game tier")
+	DotPaths.remove_tree(server_dir)
+	config = DotConsoleConfig.new()
+	res = config.load_cfg(FILE, LEGACY)
+	_check(res.ok and config.scrollback_lines == 3500, "the game tier wins over the addon's own")
+	_write(server_game_dir.path_join(FILE), "scrollback_lines: 3700\n")
+	config = DotConsoleConfig.new()
+	res = config.load_cfg(FILE, LEGACY)
+	_check(res.ok and config.scrollback_lines == 3700, "the operator's per-game tier wins over the game's")
+	DotAddonConfig.game = ""
+	DotPaths.remove_tree("user://cfg/game/mg-test")
+	DotPaths.remove_tree("user://cfg/server/game/mg-test")
+
 	_clean(addon_dir, server_dir)
 	DotCfgLegacy.reset()
 	_write("user://cfg/server/" + FOLDER + "/" + FILE, "scrollback_lines: 4000\n")
