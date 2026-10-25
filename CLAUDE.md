@@ -4,6 +4,8 @@ The player's console: a key, a line, a history, and a bridge to whatever can run
 
 **The distributable is `addons/dot_console/`.** It requires [dot-core](../dot-core) API level 16 or later and nothing else: not dot-server, which it bridges to by duck typing, and not dot-ui.
 
+Also requires **dot-profile** (`DotProfileSet`, `DotProfile`, `DotProfileRuntime`, split from dot-core): link `addons/dot_profile` next to `addons/dot_core`.
+
 ```bash
 ln -s ../../dot-core/addons/dot_core addons/dot_core
 ```
