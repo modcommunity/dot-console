@@ -2,16 +2,8 @@ class_name DotConsoleProfileEdit
 extends RefCounted
 
 ## The `profile_edit` command: live edits to dot-core's [DotProfileRuntime], from a console.
-##
-## Usage: `profile_edit set <kind> <id> <key> <value>`, `reset_key <kind> <id> <key>`,
-## `reset <kind> <id>`, `save <kind> <id>`. The value is typed by its look (`400`, `2.5`, `true`,
-## `[1,2]` as JSON), else the text. The command only builds the request; the server decides who may
-## (the admin flags), so nothing is checked here.
-##
-## [codeblock]
-## DotConsoleProfileEdit.register(local, link.submit)   # link: dot-net's DotNetProfileLink
-## DotConsoleProfileEdit.print_replies(console, link)  # shows the server's answer
-## [/codeblock]
+## Only builds the request; the server decides who may. Wire it with `register(local, link.submit)`
+## and `print_replies(console, link)`.
 
 const USAGE := "profile_edit set <kind> <id> <key> <value> | reset_key <kind> <id> <key> | reset <kind> <id> | save <kind> <id>"
 
