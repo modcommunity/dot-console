@@ -63,7 +63,3 @@ The family's two steps ([game-dev/CLAUDE.md](../../CLAUDE.md#validating-anything
 - **A command system.** dot-server's console is the one.
 - **A theme.** A `StyleBoxFlat` built in code and nothing else.
 - **Log mirroring on by default.** `mirror_log` is off: a server at DEBUG is a wall of noise.
-
-## Open items
-
-- game-playground still builds its console by hand rather than through `DotConsoleKit` (queued as `move-arena-g2gfast-1`). [kit](docs/console-kit.md)
