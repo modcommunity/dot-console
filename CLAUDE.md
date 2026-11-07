@@ -40,7 +40,7 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first.
 
 ## Running and testing
 
-The family's two steps ([game-dev/CLAUDE.md](../../CLAUDE.md#validating-anything)), then `timeout 120 godot --headless --path . res://examples/console_selftest.tscn`.
+The family's two steps ([family CLAUDE.md](../../CLAUDE.md#validating-anything)), then `timeout 120 godot --headless --path . res://examples/console_selftest.tscn`.
 
 - **`SECTIONS` and `CHECKS` in the suite are guards**: a script error aborts one test, not the run. Update `CHECKS` in the same commit as any test you add; a guard that is always red is one nobody reads. [history](docs/history.md#the-guard-that-was-always-red)
 - The last section builds a real `DotConsolePanel` and asserts it has a size, because `set_anchors_preset` does not set offsets. The rest of the panel wants a screenshot.
