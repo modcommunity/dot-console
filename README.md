@@ -1,5 +1,3 @@
-# dot-console
-
 The in-game developer console for Godot 4.7+, opened with a key. It gives you a line editor, history, tab completion, scrollback and a bridge to whatever command system your game already has. Part of the [dot-*](https://github.com/modcommunity) family. It needs only [dot-core](https://github.com/modcommunity/dot-core).
 
 dot-console is a console, not a command system. dot-server already has commands, cvars, permissions, aliases and completion, and a second copy would drift. dot-console owns the key, line editing, history, scrollback and drawing, and asks sources to run the line.
