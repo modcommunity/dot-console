@@ -1,43 +1,25 @@
-This is the **console** asset for TMC's **Dot** collection. It adds the developer console a player opens with a key: a line, a history, tab completion, scrollback, and a bridge to whatever command system the game already has.
+# dot-console
 
-This collection of assets provides modular building blocks for creating games and applications within the TMC ecosystem, ensuring consistency and interoperability across all `dot-*` assets. This includes core functionality, networking, authentication, cloud integration, and more.
+The in-game developer console for Godot 4.7+, opened with a key. It gives you a line editor, history, tab completion, scrollback and a bridge to whatever command system your game already has. Part of the [dot-*](https://github.com/modcommunity) family. It needs only [dot-core](https://github.com/modcommunity/dot-core).
 
-**These assets are COMPLETELY OPEN SOURCE**. You are free to use, modify, and distribute them under the terms of the MIT license. The only thing not open source is the back-end web infrastructure. So if you opt into using your own authentication backend instead of integrating with TMC, you will need to build and integrate your own back-end infrastructure.
+dot-console is a console, not a command system. dot-server already has commands, cvars, permissions, aliases and completion, and a second copy would drift. dot-console owns the key, line editing, history, scrollback and drawing, and asks sources to run the line.
 
-## From Maintainer & WARNING
-This asset, along with all the others, was built initially with **Claude Code** and will continue to be maintained and extended using it. This is because I (`gamemann`) cannot build the entire TMC platform alone (I wish I could lol).
+## Install
 
-**Please treat this as partially tested.** Every asset has its own headless test suite and those suites pass, but very little of this has been in front of real players yet. Expect rough edges, and please report anything you run into.
+1. Copy `addons/dot_console/` and `addons/dot_core/` into your project.
+2. Enable dot-console in *Project > Project Settings > Plugins*.
 
-## It is a console, not a command system
+## Sources
 
-This is the one decision everything else follows from. dot-server already has a command system, with commands, cvars, permissions, aliases, config execution and argument completion, and has had one for months. Building a second would be two copies of one thing, which is the bug this family guards hardest against; naming dot-server's would make it a hard dependency, which the family's rules forbid.
+Sources are asked in order, and the first that claims a name handles it. A local `quit` therefore quits the client, not the dedicated server.
 
-So dot-console owns **the key, the line editing, the history, the scrollback and the drawing**, and asks *sources* to run the line. Three ship:
-
-| | |
+| Source | What it is for |
 | --- | --- |
-| `DotConsoleLocal` | The handful of things that genuinely belong to the machine the player is at: a volume, a bind, a screenshot, `quit`. Works with no server in the process. |
-| `DotConsoleBridge` | Wraps anything with `execute` and `complete` by duck typing, so a server's console becomes a source without this asset naming a single type in it. |
+| `DotConsoleLocal` | Things that belong to the player's own machine: a volume, a bind, a screenshot, `quit`. Works with no server in the process. |
+| `DotConsoleBridge` | Wraps anything with `execute` and `complete` (duck typing), so a server's console becomes a source without this addon naming its types. |
 | `DotConsoleRemote` | A `send_fn` that puts the line on a wire, for RCON or a chat command. |
 
-Sources are asked in order, and the first that claims a name handles it, so a local `quit` quits the client rather than the dedicated server, which is a mistake worth making impossible.
-
-## Three details that are not obvious
-
-**The key is bound by position, not by character.** The console key is the one under Escape, and it produces `` ` `` on a UK keyboard, `^` on a German one and `²` on a French one. Binding the character means the console cannot be opened at all across most of Europe, and the player's only clue is that nothing happens. `open_physical_key` is a physical keycode, and `open_action` comes first so a rebinder can move it.
-
-**The scrollback is a ring.** An unbounded console buffer is a memory leak with a plausible name: a dedicated server logging a line per tick fills it in an afternoon, and the console, which is the thing you would open to find out why the process is growing, is the cause.
-
-**A password typed into a console has been published.** It goes into the scrollback, into the history where the next Up arrow puts it back on screen, and into the screenshot somebody posts to ask why their server will not start. `DotConsoleLine.redact` keeps the command name and replaces the rest with a fixed number of asterisks, because the length of a password is information too.
-
-## The controller draws nothing
-
-`DotConsoleController` is a `Node` with no `Control` anywhere in it: sources, scrollback, history, completion and the key. `DotConsolePanel` is a `Control` that draws whatever it says. That is what makes a headless suite possible, and it is the same rule as the spectate asset's "computes a transform and touches no camera".
-
-The panel does not use dot-ui, and that is not an oversight: **a console has to work when the interface does not.** Half of what one is for is finding out why a screen stack is stuck or a mouse mode is wrong, and a console built on the thing being debugged is broken at the moment it is needed.
-
-## Using it
+## Quick start
 
 ```gdscript
 var console := DotConsoleController.new()
@@ -55,29 +37,58 @@ panel.controller = console
 canvas_layer.add_child(panel)
 ```
 
-Or all of that in one call — `help`, `clear`, `settings`, every setting the manager's schema declares as a command of its own name, the server's console when one runs in this process, and the panel on its own CanvasLayer. Given a menu (anything with `add_overlay`, like the menu asset's), the console is registered as one of its overlays, so whatever the game does while its menu is open (stop the player, free the pointer) it does while the console is open too:
+Or do all of that in one call. It adds `help`, `clear`, `settings`, a command for every setting the settings manager's schema declares, the server's console when one runs in this process, and the panel on its own CanvasLayer. Given a menu (anything with `add_overlay`), the console registers as one of its overlays, so the game does the same things for the console as for the menu (stop the player, free the pointer).
 
 ```gdscript
 console = DotConsoleKit.build(self, settings_manager, menu)
 ```
 
-And the one line every game with a console forgets:
+The one line every game with a console forgets:
 
 ```gdscript
 if panel.has_keyboard_focus():
     return      # otherwise typing `noclip` walks the player forward
 ```
 
-An operator's yml lives in `cfg/addons/dot_console/console.yml` with the game's `cfg/game/<game>/dot_console/`, then the operator's `cfg/server/addons/dot_console/` and `cfg/server/game/<game>/dot_console/` over it: `DotConsoleConfig.new().load_cfg()` reads both, then `DOT_CONSOLE_*` and `--console-*`. A flat `cfg/console.yml` is still read with one WARN until 2026-12-31. The rcon port, allow-list and password are not this addon's: dot-server-deploy reads `rcon.yml`, and the password stays in a file only.
+See [docs/console-kit.md](docs/console-kit.md).
 
-## Installing
+## Design choices
 
-Copy `addons/dot_console/` and [`dot-core`](https://github.com/modcommunity/dot-core)'s `addons/dot_core/` into your project and enable dot-console in **Project → Project Settings → Plugins**.
+| Choice | Why |
+| --- | --- |
+| The key is bound by physical position. | The key under Escape types `` ` `` on a UK keyboard, `^` on a German one and `²` on a French one. Binding a character makes the console unopenable across much of Europe. `open_physical_key` is a physical keycode, and `open_action` is checked first so a player can rebind it. |
+| The scrollback is a ring. | An unbounded buffer is a memory leak, and a server logging a line per tick would fill it. The size is `scrollback_lines`. |
+| Secrets are redacted. | A password typed into a console lands in scrollback, in history and in screenshots. `DotConsoleLine.redact` keeps the command name and replaces the rest with asterisks of a fixed length, because the length of a password is information too. |
+| The controller draws nothing. | `DotConsoleController` is a `Node` with no `Control`. `DotConsolePanel` draws it. That is what makes a headless suite possible. |
+| The panel does not use dot-ui. | A console must work when the interface does not. Half its use is finding out why a screen stack is stuck. |
 
-## Dependencies
+## Settings
 
-[dot-core](https://github.com/modcommunity/dot-core). Nothing else, and in particular not dot-server, which it bridges to by duck typing, nor dot-ui.
+Defaults are in `cfg/addons/dot_console/console.yml`. A game overrides them in `cfg/game/<game>/dot_console/`, and the server operator in `cfg/server/addons/dot_console/` or `cfg/server/game/<game>/dot_console/` (strongest). `DotConsoleConfig.new().load_cfg()` reads these, then `DOT_CONSOLE_*` environment variables and `--console-*` flags.
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `open_action` | `dot_console_toggle` | The input action that opens the console. |
+| `scrollback_lines` | 2048 | Lines of scrollback kept. The inspector slider runs 16 to 100000. |
+| `history_lines` | 128 | Lines of typed history kept. The inspector slider runs 4 to 10000. |
+| `chat_command_prefixes` | `/` and `!` | Prefixes treated as chat commands. |
+
+The RCON port, allow-list and password are not this addon's. dot-server-deploy reads `rcon.yml`, and the password stays in a file only.
+
+## Test
+
+```bash
+godot --headless --path . --import
+godot --headless --path . res://examples/console_selftest.tscn
+godot --headless --path . res://examples/cfg_selftest.tscn
+```
+
+The self-tests are offline and exit non-zero on any failure. The design is in [docs/design.md](docs/design.md).
+
+## Status
+
+Built and maintained with Claude Code. The test suites pass, but little of this has been in front of real players yet. Please report rough edges by opening an issue.
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE). Only the TMC back-end web infrastructure is not open source.
