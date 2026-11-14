@@ -64,7 +64,7 @@ See [docs/console-kit.md](docs/console-kit.md).
 
 ## Settings
 
-Defaults are in `cfg/addons/dot_console/console.yml`. A game overrides them in `cfg/game/<game>/dot_console/`, and the server operator in `cfg/server/addons/dot_console/` or `cfg/server/game/<game>/dot_console/` (strongest). `DotConsoleConfig.new().load_cfg()` reads these, then `DOT_CONSOLE_*` environment variables and `--console-*` flags.
+Defaults are in `cfg/addon/dot_console/console.yml`. A game overrides them in `cfg/game/<game>/dot_console/`, and the server operator in `cfg/server/addon/dot_console/` or `cfg/server/game/<game>/dot_console/` (strongest). `DotConsoleConfig.new().load_cfg()` reads these, then `DOT_CONSOLE_*` environment variables and `--console-*` flags.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
