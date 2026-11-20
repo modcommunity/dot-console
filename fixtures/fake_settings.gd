@@ -1,6 +1,6 @@
 extends RefCounted
 
-## A stand-in for dot-settings' manager, for the suite.
+## A stand-in for GameSpice Settings' manager, for the suite.
 ##
 ## No `class_name`: a fixture that declares one reserves a global identifier in every
 ## project that ever vendors this addon's repository, and this is a test double. It lives

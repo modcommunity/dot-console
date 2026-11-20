@@ -1,7 +1,7 @@
 class_name DotConsoleProfileEdit
 extends RefCounted
 
-## The `profile_edit` command: live edits to dot-core's [DotProfileRuntime], from a console.
+## The `profile_edit` command: live edits to GameSpice Core's [DotProfileRuntime], from a console.
 ## Only builds the request; the server decides who may. Wire it with `register(local, link.submit)`
 ## and `print_replies(console, link)`.
 

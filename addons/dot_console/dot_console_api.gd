@@ -1,6 +1,6 @@
 extends RefCounted
 
-## dot-console's API level. The rule for bumping it is on [DotAddonApi].
+## GameSpice Console's API level. The rule for bumping it is on [DotAddonApi].
 ##
 ## LEVEL rises by one for anything a game could call that did not exist before. OLDEST is
 ## raised to LEVEL when something a game could have called is removed or changes meaning,
@@ -15,6 +15,6 @@ extends RefCounted
 #    secret command after a prefix word (same signatures, stricter answers).
 # 5: DotConsoleConfig.apply_cfg_file and load_cfg read cfg/addons/dot_console/console.yml and
 #    the operator's cfg/server/addons/dot_console/, with a flat cfg/console.yml as a shim until
-#    the end of 2026. Needs dot-core API level 16 (DotAddonConfig.apply_file).
+#    the end of 2026. Needs GameSpice Core API level 16 (DotAddonConfig.apply_file).
 const LEVEL := 5
 const OLDEST := 1

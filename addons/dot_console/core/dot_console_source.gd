@@ -3,9 +3,9 @@ extends RefCounted
 
 ## Something a console line can be sent to.
 ##
-## [b]dot-console is a console, not a command system.[/b] That is the whole architectural
+## [b]GameSpice Console is a console, not a command system.[/b] That is the whole architectural
 ## decision and it is worth being blunt about, because the obvious alternative is to build
-## a second command registry beside dot-server's — and dot-server already has `DotConsole`,
+## a second command registry beside GameSpice Server's — and GameSpice Server already has `DotConsole`,
 ## `DotConCommand`, `DotConVar`, permissions, aliases, config execution and completion,
 ## all of which have been shipping for months.
 ##
@@ -19,7 +19,7 @@ extends RefCounted
 ##   a volume, a key bind, a screenshot. A client must be able to do those with no server
 ##   in the process at all.
 ## - [DotConsoleBridge] — wraps any object with [code]execute[/code] and
-##   [code]complete[/code], which is dot-server's console exactly, reached by duck typing
+##   [code]complete[/code], which is GameSpice Server's console exactly, reached by duck typing
 ##   so this addon never names it.
 ## - [DotConsoleRemote] — a [Callable] that puts the line on a wire, for RCON or for a
 ##   chat command. It cannot complete and says so rather than pretending.

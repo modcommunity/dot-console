@@ -24,7 +24,7 @@ var _section_count := 0
 func _ready() -> void:
 	DotLog.set_level(DotLog.Level.ERROR)
 	# Awaited. An un-awaited call to a coroutine returns at its first `await` and the
-	# caller carries straight on -- which is how dot-npc's leak check ended up scheduled
+	# caller carries straight on -- which is how GameSpice NPC's leak check ended up scheduled
 	# to finish after get_tree().quit() and never reported.
 	await _run()
 
@@ -458,7 +458,7 @@ func _test_controller() -> void:
 	c.submit("   ")
 	_check(c.buffer.line_count() == before, "an empty line does nothing at all")
 
-	# The chat prefix, forgiven. The same commands are typable in chat on a dot-server with
+	# The chat prefix, forgiven. The same commands are typable in chat on a GameSpice Server with
 	# `sv_chat_commands` on, and the finger that learned `/` there arrives here with it.
 	var said := says.size()
 	c.submit("/say hello")
@@ -580,7 +580,7 @@ func _test_panel_is_not_zero_sized() -> void:
 	await get_tree().process_frame
 
 	# set_anchors_preset does NOT set offsets. This family has shipped 0 x 0 Controls
-	# twice -- dot-ui had five -- and every property about them read correctly both times.
+	# twice -- GameSpice UI had five -- and every property about them read correctly both times.
 	# A size is the only half a headless run can see; the rest wants a screenshot.
 	_check(panel.size.x > 0.0 and panel.size.y > 0.0, "the panel fills the viewport")
 
@@ -637,8 +637,8 @@ func _test_kit() -> void:
 	panel.close()
 	_check(closed[0] == 1 and not c.is_open(), "and closing it through the menu's close() says so")
 
-	# `sm`: the player's own block list (dot-chat's DotChatSelfMute, found by registry name;
-	# a stand-in here, because dot-console does not link dot-chat).
+	# `sm`: the player's own block list (GameSpice Chat's DotChatSelfMute, found by registry name;
+	# a stand-in here, because GameSpice Console does not link GameSpice Chat).
 	_check(names.has("sm"), "sm is a client command when a block list is registered")
 	c.submit("sm")
 	c.submit("sm ada lovelace")

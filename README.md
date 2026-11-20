@@ -1,8 +1,8 @@
 [![Console - GameSpice addon](docs/banner.png)](https://moddingcommunity.com/a/51-gs-console)
 
-The in-game developer console for Godot 4.7+, opened with a key. It gives you a line editor, history, tab completion, scrollback and a bridge to whatever command system your game already has. Part of the [dot-*](https://github.com/gamespice-platform) family. It needs only [dot-core](https://github.com/gamespice-platform/core).
+The in-game developer console for Godot 4.7+, opened with a key. It gives you a line editor, history, tab completion, scrollback and a bridge to whatever command system your game already has. Part of the [GameSpice](https://github.com/gamespice-platform) family. It needs only [GameSpice Core](https://github.com/gamespice-platform/core).
 
-dot-console is a console, not a command system. dot-server already has commands, cvars, permissions, aliases and completion, and a second copy would drift. dot-console owns the key, line editing, history, scrollback and drawing, and asks sources to run the line.
+GameSpice Console is a console, not a command system. GameSpice Server already has commands, cvars, permissions, aliases and completion, and a second copy would drift. GameSpice Console owns the key, line editing, history, scrollback and drawing, and asks sources to run the line.
 
 ## Install
 
@@ -60,7 +60,7 @@ See [docs/console-kit.md](docs/console-kit.md).
 | The scrollback is a ring. | An unbounded buffer is a memory leak, and a server logging a line per tick would fill it. The size is `scrollback_lines`. |
 | Secrets are redacted. | A password typed into a console lands in scrollback, in history and in screenshots. `DotConsoleLine.redact` keeps the command name and replaces the rest with asterisks of a fixed length, because the length of a password is information too. |
 | The controller draws nothing. | `DotConsoleController` is a `Node` with no `Control`. `DotConsolePanel` draws it. That is what makes a headless suite possible. |
-| The panel does not use dot-ui. | A console must work when the interface does not. Half its use is finding out why a screen stack is stuck. |
+| The panel does not use GameSpice UI. | A console must work when the interface does not. Half its use is finding out why a screen stack is stuck. |
 
 ## Settings
 
@@ -73,7 +73,7 @@ Defaults are in `cfg/addon/dot_console/console.yml`. A game overrides them in `c
 | `history_lines` | 128 | Lines of typed history kept. The inspector slider runs 4 to 10000. |
 | `chat_command_prefixes` | `/` and `!` | Prefixes treated as chat commands. |
 
-The RCON port, allow-list and password are not this addon's. dot-server-deploy reads `rcon.yml`, and the password stays in a file only.
+The RCON port, allow-list and password are not this addon's. GameSpice Server Deploy reads `rcon.yml`, and the password stays in a file only.
 
 ## Test
 

@@ -3,7 +3,7 @@ extends Node
 
 ## The console's whole behaviour, with no [Control] anywhere in it.
 ##
-## [b]The split is what makes a headless suite possible.[/b] Same rule as dot-spectate's
+## [b]The split is what makes a headless suite possible.[/b] Same rule as GameSpice Spectate's
 ## "computes a transform and touches no camera": the controller owns the sources, the
 ## scrollback, the history, the completion and the key, and [DotConsolePanel] draws
 ## whatever it says. A suite drives the controller directly and never opens a window.

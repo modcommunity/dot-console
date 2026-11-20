@@ -4,7 +4,7 @@ extends DotConfig
 
 ## Everything about the console a player or an operator can change.
 ##
-## A settings screen for it is free, because dot-ui generates one from any [DotConfig] —
+## A settings screen for it is free, because GameSpice UI generates one from any [DotConfig] —
 ## and the key binding in particular belongs in a settings screen rather than in an
 ## export, which is what [member open_action] is for.
 
@@ -12,7 +12,7 @@ extends DotConfig
 
 ## The [InputMap] action that toggles the console, when the project defines one.
 ##
-## Checked first. A game with a rebinder — dot-ui ships one — wants the console's key to
+## Checked first. A game with a rebinder — GameSpice UI ships one — wants the console's key to
 ## be rebindable like every other, and an action is the only thing a rebinder can see.
 @export var open_action: StringName = &"dot_console_toggle"
 

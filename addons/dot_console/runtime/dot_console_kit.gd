@@ -16,8 +16,8 @@ extends RefCounted
 ## command in every game that calls this, with nothing else to add when a setting is new.
 ##
 ## [b]Every argument is duck-typed.[/b] [param settings] is anything with `get_value`,
-## `set_value` and a `schema` with `keys()`/`find()` (dot-settings' manager); [param menu]
-## is anything with `add_overlay(control)` and `overlay_opened()` (dot-menu's [code]DotMenu
+## `set_value` and a `schema` with `keys()`/`find()` (GameSpice Settings' manager); [param menu]
+## is anything with `add_overlay(control)` and `overlay_opened()` (GameSpice Menu's [code]DotMenu
 ## [/code]). This addon keeps its one dependency.
 ##
 ## [b]Registered with the menu as one of its overlays[/b], when there is a menu: so the
@@ -74,14 +74,14 @@ static func build(
 	return console
 
 
-## The registry name and the script of the player's own block list (dot-chat's
+## The registry name and the script of the player's own block list (GameSpice Chat's
 ## `DotChatSelfMute`), reached by name and path so this addon keeps its one dependency.
 const SELF_MUTE_SERVICE := &"dot_self_mute"
 const SELF_MUTE_SCRIPT := "res://addons/dot_chat/runtime/dot_chat_self_mute.gd"
 
 
 ## `sm`, the player's own block list: `sm` lists who is here, `sm <number|name|#userid>`
-## mutes or unmutes their chat and voice on this client only. Added when dot-chat is in the
+## mutes or unmutes their chat and voice on this client only. Added when GameSpice Chat is in the
 ## build; the same list the chat box's `!sm` runs. False when there is no list to run.
 static func add_self_mute(local: DotConsoleLocal) -> bool:
 	if DotRegistry.get_service(SELF_MUTE_SERVICE) == null and not ResourceLoader.exists(SELF_MUTE_SCRIPT):

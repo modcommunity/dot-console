@@ -3,7 +3,7 @@ extends Control
 
 ## The console on screen. Built in code, themed by nothing, drawn by the engine.
 ##
-## Ships no art and no [Theme], for dot-ui's reason. It also does not depend on dot-ui,
+## Ships no art and no [Theme], for GameSpice UI's reason. It also does not depend on GameSpice UI,
 ## and that is not an oversight: **a console has to work when the interface does not.**
 ## Half of what one is for is finding out why a screen stack is stuck, a mouse mode is
 ## wrong or a menu will not close, and a console built on the thing being debugged is a
@@ -16,7 +16,7 @@ extends Control
 ## [/codeblock]
 ##
 ## [b]Every offset is set explicitly.[/b] [method Control.set_anchors_preset] does NOT set
-## offsets, and this family has shipped 0 × 0 [Control]s twice — dot-ui had five of them,
+## offsets, and this family has shipped 0 × 0 [Control]s twice — GameSpice UI had five of them,
 ## and every screen it ever hosted was zero-sized unless a host happened to size it. The
 ## symptom is nothing on screen while every property reads correctly, which no assertion
 ## catches: only a rendered frame does. `set_anchors_and_offsets_preset` is the spelling
@@ -28,7 +28,7 @@ extends Control
 @export var controller: DotConsoleController = null
 
 ## The console closed. With [method is_open] and [method close], the shape a menu's list of
-## overlays duck-types (dot-menu's `add_overlay`): registered there, the console is one
+## overlays duck-types (GameSpice Menu's `add_overlay`): registered there, the console is one
 ## more thing the game's "something is open" hook knows about. See [DotConsoleKit].
 signal closed()
 
@@ -263,8 +263,8 @@ func _complete() -> void:
 	# Argument completion belongs to whoever knows what the argument means, and only some
 	# sources do -- so it is asked for rather than assumed. A source that has none answers
 	# with nothing and the box is left alone, which is the same outcome this used to get by
-	# refusing to ask; the difference is the ones that DO. dot-server's console completes
-	# player names for `kick` and game ids for `changegame`, and dot-log completes its own
+	# refusing to ask; the difference is the ones that DO. GameSpice Server's console completes
+	# player names for `kick` and game ids for `changegame`, and GameSpice Log completes its own
 	# subcommands and level names, and none of that could arrive while this returned here.
 	var candidates := controller.complete(partial)
 	if candidates.is_empty():

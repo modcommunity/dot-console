@@ -3,10 +3,10 @@ extends DotConsoleSource
 
 ## Wraps anything that can already run a command line, without naming its class.
 ##
-## [b]This is the file that stops dot-console being a second command system.[/b]
-## dot-server's console has commands, cvars, permissions, aliases, config execution and
+## [b]This is the file that stops GameSpice Console being a second command system.[/b]
+## GameSpice Server's console has commands, cvars, permissions, aliases, config execution and
 ## argument completion, and has had them for months. Naming `DotConsole` here would make
-## dot-server a hard dependency, which the family's rules forbid; re-implementing it would
+## GameSpice Server a hard dependency, which the family's rules forbid; re-implementing it would
 ## be two copies of one system, which is this family's most repeated bug.
 ##
 ## So: duck typing. Anything with [code]execute(line)[/code] is a target, anything that

@@ -1,10 +1,10 @@
-# dot-console
+# GameSpice Console
 
 The player's console: a key, a line, a history, and a bridge to whatever can run it. **dot-server's console is the machine that decides; dot-console is the person typing**: it has a key and a caret and no authority, and it is not a second command system.
 
-**The distributable is `addons/dot_console/`.** It requires [dot-core](../dot-core) API level 16 or later and nothing else: not dot-server, which it bridges to by duck typing, and not dot-ui.
+**The distributable is `addons/dot_console/`.** It requires [GameSpice Core](../dot-core) API level 16 or later and nothing else: not dot-server, which it bridges to by duck typing, and not dot-ui.
 
-Also requires **dot-profile** (`DotProfileSet`, `DotProfile`, `DotProfileRuntime`, split from dot-core): link `addons/dot_profile` next to `addons/dot_core`.
+Also requires **GameSpice Profile** (`DotProfileSet`, `DotProfile`, `DotProfileRuntime`, split from GameSpice Core): link `addons/dot_profile` next to `addons/dot_core`.
 
 ```bash
 ln -s ../../dot-core/addons/dot_core addons/dot_core
@@ -25,8 +25,8 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first.
 | Class | What |
 | --- | --- |
 | `DotConsoleSource` | anything a line can be sent to: `claims`, `execute`, `complete`, `names` |
-| `DotConsoleLocal` | the client's own commands and variables; `bind_setting` wires one straight through to dot-settings by duck typing, so there is one copy of a value |
-| `DotConsoleBridge` | wraps an existing console (dot-server's); the file that stops this being a second command system |
+| `DotConsoleLocal` | the client's own commands and variables; `bind_setting` wires one straight through to GameSpice Settings by duck typing, so there is one copy of a value |
+| `DotConsoleBridge` | wraps an existing console (GameSpice Server's); the file that stops this being a second command system |
 | `DotConsoleRemote` | a `send_fn` to a wire; deliberately the least capable source |
 | `DotConsoleProfileEdit` | the `profile_edit` command (set, reset_key, reset, save) that builds a `DotProfileRuntime` request and hands it to a `submit` callable; the server decides who may |
 | `DotConsoleLine` | splitting, statements and redaction, one pass over one string |
@@ -48,18 +48,18 @@ The family's two steps ([family CLAUDE.md](../../CLAUDE.md#validating-anything))
 ## Rules that bite
 
 - The open key is a physical keycode (the key under Escape), never a character; `open_action` is checked first. [design](docs/design.md#three-things-that-are-easy-to-get-wrong)
-- Input is handled in `_input`, so the console opens when a screen stack has swallowed input; the panel does not use dot-ui. [design](docs/design.md#three-things-that-are-easy-to-get-wrong)
+- Input is handled in `_input`, so the console opens when a screen stack has swallowed input; the panel does not use GameSpice UI. [design](docs/design.md#three-things-that-are-easy-to-get-wrong)
 - Redact by command name, before the echo and before the history, with a fixed number of asterisks. [design](docs/design.md#three-things-that-are-easy-to-get-wrong)
 - Never re-implement a server command here; bridge it. `DotConsoleLocal` is for the client's own handful. [design](docs/design.md#why-this-is-not-a-second-command-system)
 - A remote source never asks the server per keystroke; it learns names once (`learn_names`). An unprefixed remote source is added last; use `prefix` when the console is not the server's. [design](docs/design.md#decisions)
 - Completion text: `lstrip`, never `strip_edges`; candidates are whole lines. [design](docs/design.md#argument-completion)
 - The console does not pause the game, and a failed statement does not stop the next. [design](docs/design.md#decisions)
-- `sm` (the player's block list) is a kit command found by registry name or dot-chat's script path, never named. [kit](docs/console-kit.md)
+- `sm` (the player's block list) is a kit command found by registry name or GameSpice Chat's script path, never named. [kit](docs/console-kit.md)
 - In a game, register the panel as one of the menu's overlays (`DotConsoleKit` does), or typing walks the player. [kit](docs/console-kit.md)
 - A test that captures a local in a lambda captures it by value: capture an `Array`. [history](docs/history.md#what-building-it-found)
 
 ## Things deliberately not here
 
-- **A command system.** dot-server's console is the one.
+- **A command system.** GameSpice Server's console is the one.
 - **A theme.** A `StyleBoxFlat` built in code and nothing else.
 - **Log mirroring on by default.** `mirror_log` is off: a server at DEBUG is a wall of noise.

@@ -10,12 +10,12 @@ extends DotConsoleSource
 ##
 ## [codeblock]
 ## local.add_command(&"screenshot", "Save a screenshot", func(args): ...)
-## local.bind_setting(&"sensitivity", settings)   # reads and writes dot-settings
+## local.bind_setting(&"sensitivity", settings)   # reads and writes GameSpice Settings
 ## [/codeblock]
 ##
 ## [b]It takes its variables from wherever they live rather than holding them.[/b]
 ## [method bind_setting] wires a name straight through to anything with
-## [code]get_value[/code] and [code]set_value[/code] — dot-settings, in every deployment
+## [code]get_value[/code] and [code]set_value[/code] — GameSpice Settings, in every deployment
 ## that has it — so there is one copy of a setting and not two that drift. A console that
 ## keeps its own copy of the volume is a console that shows the wrong volume.
 
@@ -54,7 +54,7 @@ func add_var(
 ## Wires a name straight to a settings object, without naming its class.
 ##
 ## [param settings] is anything with [code]get_value(key)[/code] and
-## [code]set_value(key, value)[/code] — dot-settings' manager, duck-typed, so this addon
+## [code]set_value(key, value)[/code] — GameSpice Settings' manager, duck-typed, so this addon
 ## keeps its single dependency. Returns false when the object cannot answer, rather than
 ## registering a variable that errors the first time somebody types it.
 func bind_setting(key: StringName, settings: Object, help: String = "") -> bool:

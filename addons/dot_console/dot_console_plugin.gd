@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-## Editor entry point for dot-console. Registers inspector types only.
+## Editor entry point for GameSpice Console. Registers inspector types only.
 ##
 ## No autoloads: a host and a client in one process are two consoles with two sets of
 ## sources, and a global would make them one.
